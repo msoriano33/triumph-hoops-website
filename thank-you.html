@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 rx=%2712%27 fill=%27%230b0b0c%27/%3E%3Ctext x=%2750%27 y=%2769%27 font-family=%27Arial,sans-serif%27 font-weight=%27900%27 font-size=%2758%27 fill=%27%23ffc629%27 text-anchor=%27middle%27%3ET%3C/text%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thank You | Triumph Hoops Academy</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://triumphhoopsacademy.com/thank-you">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+
+<body>
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">T</span>
+      <span class="brand-name">Triumph <span>Hoops Academy</span></span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html">Home</a>
+      <a href="training.html">Training</a>
+      <a href="teams.html">Teams</a>
+      <a href="junior-wolves.html">Junior Wolves</a>
+      <a href="our-story.html">Our Story</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="section">
+  <div class="container container--narrow">
+    <div id="ok">
+      <p class="eyebrow">Received</p>
+      <h1 class="h1">Thanks for reaching out to Triumph.</h1>
+      <p class="lead">
+        We'll review your information and help identify the best next step for your player.
+        Most families hear back within a couple of days.
+      </p>
+    </div>
+
+    <div id="err" hidden>
+      <p class="eyebrow">Not sent</p>
+      <h1 class="h1">That didn't go through.</h1>
+      <p class="lead">
+        Your information wasn't submitted. Please email
+        <a href="mailto:triumphhoopsacademy@gmail.com">triumphhoopsacademy@gmail.com</a>
+        with your player's name, age and grade and we'll pick it up there.
+      </p>
+    </div>
+
+    <div class="btn-row">
+      <a class="btn btn--primary" href="index.html">Back to Triumph</a>
+      <a class="btn btn--ghost" href="training.html">Explore training</a>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-bottom" style="margin-top:0;border-top:0;padding-top:0">
+      <p>&copy; <span id="year">2026</span> Triumph Hoops Academy LLC</p>
+      <p><a href="mailto:triumphhoopsacademy@gmail.com">triumphhoopsacademy@gmail.com</a></p>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/site-data.js"></script>
+<script src="assets/js/main.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+  if (new URLSearchParams(window.location.search).get("status") === "error") {
+    document.getElementById("ok").hidden = true;
+    document.getElementById("err").hidden = false;
+  }
+</script>
+</body>
+</html>
