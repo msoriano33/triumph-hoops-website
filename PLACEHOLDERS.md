@@ -10,8 +10,9 @@ an obvious placeholder or a "To be announced" chip.
 | 1 | **Form email credentials** | Host environment variables | Until these exist, no form delivers. See `SETUP.md` Step 3. |
 | 2 | **Coach Oli — public phone number** | `site-data.js` → `contactInfo.phoneDisplay`, `phoneHref` | Currently shows `[COACH OLI PUBLIC PHONE]` in the footer and beside every form. |
 | 3 | **Coach Oli — last name** | `site-data.js` → `staff` | Staff card reads "Coach Oli [LAST NAME]". |
-| 4 | **Official Triumph yellow hex** | `styles.css` → `--triumph-yellow` | Currently `#ffc629` as a stand-in. Pull the exact value from the logo file; change it once and the whole site updates. |
-| 5 | **Triumph logo file** | `assets/img/`, then the `LOGO SLOT` comment in each page header | Currently a yellow "T" block. |
+~~4. Official Triumph yellow hex~~ — done. `#ffde16`, sampled directly from the uploaded logo file.
+
+~~5. Triumph logo file~~ — done. `assets/img/triumph-icon-*.png` (nav + favicon) and `assets/img/triumph-logo-full.png` (footer) are live, generated from the uploaded logo.
 
 ## Should be resolved before promoting the site
 

@@ -9,10 +9,9 @@
    -------------------------------------------------------------------------- */
 :root {
   /* --- TRIUMPH BRAND ---------------------------------------------------- */
-  /* TRIUMPH_YELLOW — PLACEHOLDER VALUE. Replace with the exact hex from the
-     official Triumph logo files. Change it here only; it is used everywhere. */
-  --triumph-yellow: #ffc629;
-  --triumph-yellow-deep: #e0a800; /* hover / pressed states */
+  /* TRIUMPH_YELLOW — sampled directly from the official logo file (triumph_logo_4in.png). */
+  --triumph-yellow: #ffde16;
+  --triumph-yellow-deep: #e0c200; /* hover / pressed states */
   --black: #0b0b0c;
   --black-raised: #17171a; /* cards + panels on dark sections */
   --black-line: #2a2a2f; /* hairlines on dark */
@@ -441,19 +440,19 @@ button { font: inherit; color: inherit; }
   color: var(--white);
   flex: none;
 }
-/* Logo slot: swap the .brand-mark block for the official Triumph logo <img>. */
+/* Logo slot: an <img> now sits inside .brand-mark (see the LOGO SLOT comment
+   in each page's header). This just controls sizing/fit, not appearance. */
 .brand-mark {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
-  background: var(--triumph-yellow);
-  color: var(--black);
-  border-radius: 3px;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-variation-settings: "wdth" 118, "wght" 800;
   flex: none;
+}
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .brand-name {
   font-family: var(--font-display);
@@ -1093,6 +1092,9 @@ button { font: inherit; color: inherit; }
 .cta-band .btn--primary { background: var(--accent-ink); color: var(--accent); border-color: var(--accent-ink); }
 .cta-band .btn--primary:hover { background: color-mix(in srgb, var(--accent-ink) 85%, #fff); }
 .cta-band .lead { color: color-mix(in srgb, var(--accent-ink) 78%, transparent); }
+
+/* Footer uses the full badge logo (icon + wordmark) since there's room for it. */
+.footer-logo { display: block; height: 88px; width: auto; margin-bottom: var(--sp-4); }
 
 .site-footer {
   background: var(--black);
