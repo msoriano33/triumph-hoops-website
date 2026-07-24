@@ -35,8 +35,8 @@ window.TRIUMPH_DATA = {
     /* Coach Oli is the primary parent-facing contact.
        Replace both values below when the public number is confirmed.
        phoneDisplay = what parents see.  phoneHref = digits only, +1 prefix. */
-    phoneDisplay: "[COACH OLI PUBLIC PHONE]",
-    phoneHref: "", // e.g. "+13125550123" — leave empty until confirmed
+     phoneDisplay: "(847) 830-9454",
+   phoneHref: "+18478309454",
     phoneContactName: "Coach Oli",
 
     /* Social links. Leave a value empty ("") and the link is hidden. */
