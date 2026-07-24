@@ -1,0 +1,1153 @@
+/* ==========================================================================
+   TRIUMPH HOOPS ACADEMY — GLOBAL DESIGN SYSTEM
+   One stylesheet. Tokens first, then primitives, then components, then pages.
+   Nothing here is hard-coded to a page; page sections reuse these primitives.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. DESIGN TOKENS
+   -------------------------------------------------------------------------- */
+:root {
+  /* --- TRIUMPH BRAND ---------------------------------------------------- */
+  /* TRIUMPH_YELLOW — PLACEHOLDER VALUE. Replace with the exact hex from the
+     official Triumph logo files. Change it here only; it is used everywhere. */
+  --triumph-yellow: #ffc629;
+  --triumph-yellow-deep: #e0a800; /* hover / pressed states */
+  --black: #0b0b0c;
+  --black-raised: #17171a; /* cards + panels on dark sections */
+  --black-line: #2a2a2f; /* hairlines on dark */
+  --white: #ffffff;
+
+  /* --- SUBTLE GRAY SCALE (secondary UI) --------------------------------- */
+  --gray-50: #f6f6f7;
+  --gray-100: #ededef;
+  --gray-200: #e0e0e3;
+  --gray-400: #a1a1aa;
+  --gray-600: #67676f;
+  --gray-800: #3a3a40;
+
+  /* --- NILES WEST JUNIOR WOLVES ----------------------------------------- */
+  /* NW_RED — TEMPORARY PLACEHOLDER. Official Niles West values are still
+     being obtained. Replace this single value once confirmed. */
+  --nw-red: #c8102e;
+  --nw-red-deep: #99001f;
+  --nw-black: #0b0b0c;
+  --nw-white: #ffffff;
+
+  /* --- SEMANTIC ACCENT --------------------------------------------------
+     Components read --accent, never a brand color directly. Junior Wolves
+     sections re-map --accent to NW red via .theme-jw. */
+  --accent: var(--triumph-yellow);
+  --accent-deep: var(--triumph-yellow-deep);
+  --accent-ink: var(--black); /* text color that sits ON the accent */
+
+  /* --- SURFACES --------------------------------------------------------- */
+  --bg: var(--white);
+  --fg: var(--black);
+  --fg-muted: var(--gray-600);
+  --line: var(--gray-200);
+
+  /* --- TYPE ------------------------------------------------------------- */
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --step-display: clamp(2rem, 8.4vw, 6.25rem);
+  --step-hero-sub: clamp(1.05rem, 1.6vw, 1.3rem);
+  --step-h2: clamp(1.8rem, 4.2vw, 3.35rem);
+  --step-h3: clamp(1.3rem, 2vw, 1.65rem);
+  --step-h4: 1.0625rem;
+  --step-body: 1.0625rem;
+  --step-small: 0.9375rem;
+  --step-label: 0.78rem;
+
+  /* --- SPACE ------------------------------------------------------------ */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4rem;
+  --sp-9: 6rem;
+  --section-y: clamp(4rem, 8vw, 8rem);
+  --gutter: clamp(1.25rem, 4vw, 3rem);
+  --max: 1240px;
+  --max-text: 62ch;
+
+  /* --- SHAPE + MOTION --------------------------------------------------- */
+  --radius: 4px;
+  --radius-lg: 8px;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur: 220ms;
+  --nav-h: 68px;
+}
+
+/* --------------------------------------------------------------------------
+   2. RESET + BASE
+   -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--nav-h) + 1rem);
+}
+/* Pages with a sticky jump nav need a deeper offset so headings clear both bars. */
+html:has(.jumpnav) { scroll-padding-top: calc(var(--nav-h) + 4.25rem); }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--step-body);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img,
+video,
+svg { display: block; max-width: 100%; height: auto; }
+
+h1, h2, h3, h4, p, ul, ol, figure, blockquote { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+
+a { color: inherit; }
+
+button { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+.skip-link {
+  position: absolute;
+  left: var(--sp-4);
+  top: -100px;
+  z-index: 999;
+  background: var(--black);
+  color: var(--white);
+  padding: 0.75rem 1.25rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-variation-settings: "wdth" 88, "wght" 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: top var(--dur) var(--ease);
+}
+.skip-link:focus { top: var(--sp-4); }
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   3. TYPOGRAPHY PRIMITIVES
+   Archivo is a variable font. Display type runs EXPANDED (wdth 118–125) like a
+   jersey nameplate; labels and data run CONDENSED (wdth 78–86) like a stat
+   sheet. Same family, two opposite voices — that contrast is the type system.
+   -------------------------------------------------------------------------- */
+.display,
+.h1,
+.h2,
+.h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  line-height: 0.92;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.display {
+  font-size: var(--step-display);
+  font-variation-settings: "wdth" 120, "wght" 800;
+}
+
+.h1 {
+  font-size: clamp(1.95rem, 6.4vw, 4.5rem);
+  font-variation-settings: "wdth" 118, "wght" 800;
+}
+
+/* Expanded caps need to relax on narrow screens or long headlines overflow. */
+@media (max-width: 680px) {
+  .display { font-variation-settings: "wdth" 100, "wght" 800; letter-spacing: -0.02em; }
+  .h1 { font-variation-settings: "wdth" 100, "wght" 800; letter-spacing: -0.02em; }
+  .h2 { font-variation-settings: "wdth" 100, "wght" 800; }
+  .h3 { font-variation-settings: "wdth" 98, "wght" 700; }
+  .pull { font-variation-settings: "wdth" 100, "wght" 750; }
+}
+
+.h2 {
+  font-size: var(--step-h2);
+  font-variation-settings: "wdth" 116, "wght" 800;
+  line-height: 0.95;
+}
+
+.h3 {
+  font-size: var(--step-h3);
+  font-variation-settings: "wdth" 106, "wght" 700;
+  line-height: 1.08;
+  letter-spacing: -0.005em;
+}
+
+.h4 {
+  font-family: var(--font-display);
+  font-size: var(--step-h4);
+  font-variation-settings: "wdth" 92, "wght" 700;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  line-height: 1.25;
+}
+
+/* Condensed caps — eyebrows, labels, meta, stat units */
+.eyebrow,
+.label,
+.meta {
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 80, "wght" 650;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: var(--step-label);
+  line-height: 1.3;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--fg-muted);
+  margin-bottom: var(--sp-4);
+}
+.eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 3px;
+  background: var(--accent);
+  flex: none;
+}
+
+.lead {
+  font-size: var(--step-hero-sub);
+  line-height: 1.55;
+  color: var(--fg-muted);
+  max-width: var(--max-text);
+}
+
+.prose p { max-width: var(--max-text); }
+.prose p + p { margin-top: var(--sp-4); }
+
+.pull {
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 112, "wght" 750;
+  text-transform: uppercase;
+  font-size: clamp(1.5rem, 3.4vw, 2.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.hl { color: var(--accent); }
+.muted { color: var(--fg-muted); }
+.small { font-size: var(--step-small); }
+.tbd {
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 80, "wght" 650;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: var(--fg-muted);
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  padding: 0.25rem 0.7rem;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   4. LAYOUT PRIMITIVES
+   -------------------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: var(--max);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.container--narrow { max-width: 900px; }
+
+.section { padding-block: var(--section-y); }
+.section--tight { padding-block: clamp(2.5rem, 5vw, 4.5rem); }
+.section--flush-top { padding-top: 0; }
+
+.section--dark {
+  background: var(--black);
+  color: var(--white);
+  --fg: var(--white);
+  --fg-muted: var(--gray-400);
+  --line: var(--black-line);
+  --bg: var(--black);
+}
+.section--paper { background: var(--gray-50); }
+
+.section-head { margin-bottom: clamp(2rem, 4vw, 3.5rem); }
+.section-head .lead { margin-top: var(--sp-4); }
+
+.split {
+  display: grid;
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .split { grid-template-columns: 1fr 1fr; }
+  .split--sticky-left > :first-child { position: sticky; top: calc(var(--nav-h) + 2rem); }
+  .split--40-60 { grid-template-columns: 5fr 7fr; }
+}
+
+.grid {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) { .grid--2, .grid--3, .grid--4 { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 980px) {
+  .grid--3 { grid-template-columns: repeat(3, 1fr); }
+  .grid--4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stack > * + * { margin-top: var(--sp-4); }
+.stack-lg > * + * { margin-top: var(--sp-6); }
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin-block: var(--sp-6);
+}
+
+/* --------------------------------------------------------------------------
+   5. BUTTONS
+   -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 52px;
+  padding: 0.9rem 1.6rem;
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-variation-settings: "wdth" 88, "wght" 750;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  text-decoration: none;
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.btn:active { transform: translateY(1px); }
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.btn--primary:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+
+.btn--outline {
+  background: transparent;
+  color: var(--fg);
+  border-color: currentColor;
+}
+.btn--outline:hover { background: var(--fg); color: var(--bg); }
+
+.btn--ghost {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--line);
+}
+.btn--ghost:hover { border-color: var(--fg); }
+
+.btn--block { width: 100%; }
+.btn[disabled], .btn[aria-disabled="true"] { opacity: 0.55; pointer-events: none; }
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+}
+
+/* Inline text link with an underline that grows on hover */
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-variation-settings: "wdth" 88, "wght" 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  color: var(--fg);
+  padding-bottom: 3px;
+  border-bottom: 2px solid var(--accent);
+  transition: gap var(--dur) var(--ease);
+}
+.link:hover { gap: 0.85rem; }
+.link::after { content: "→"; font-family: var(--font-body); }
+
+/* --------------------------------------------------------------------------
+   6. HEADER / NAV
+   -------------------------------------------------------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--black);
+  color: var(--white);
+  border-bottom: 1px solid var(--black-line);
+  transition: box-shadow var(--dur) var(--ease);
+}
+.site-header.is-stuck { box-shadow: 0 10px 30px rgb(0 0 0 / 0.28); }
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-5);
+  min-height: var(--nav-h);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  text-decoration: none;
+  color: var(--white);
+  flex: none;
+}
+/* Logo slot: swap the .brand-mark block for the official Triumph logo <img>. */
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--triumph-yellow);
+  color: var(--black);
+  border-radius: 3px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-variation-settings: "wdth" 118, "wght" 800;
+  flex: none;
+}
+.brand-name {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-variation-settings: "wdth" 100, "wght" 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+.brand-name span { display: block; font-size: 0.62rem; font-variation-settings: "wdth" 80, "wght" 600; letter-spacing: 0.2em; color: var(--gray-400); margin-top: 4px; }
+
+.nav-links {
+  display: none;
+  align-items: center;
+  gap: clamp(1rem, 2.2vw, 2rem);
+}
+.nav-links a {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-variation-settings: "wdth" 88, "wght" 650;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  color: var(--gray-400);
+  padding: 0.4rem 0;
+  border-bottom: 2px solid transparent;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.nav-links a:hover { color: var(--white); }
+.nav-links a[aria-current="page"] { color: var(--white); border-bottom-color: var(--accent); }
+
+.nav-cta { display: none; }
+
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: transparent;
+  border: 1px solid var(--black-line);
+  border-radius: var(--radius);
+  color: var(--white);
+  padding: 0.55rem 0.85rem;
+  min-height: 44px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-variation-settings: "wdth" 80, "wght" 650;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.nav-toggle-bars { display: grid; gap: 4px; width: 18px; }
+.nav-toggle-bars i { display: block; height: 2px; background: currentColor; transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease); }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars i:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars i:nth-child(2) { opacity: 0; }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars i:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+.mobile-menu {
+  display: none;
+  background: var(--black);
+  border-top: 1px solid var(--black-line);
+  padding: var(--sp-4) 0 var(--sp-6);
+}
+.mobile-menu.is-open { display: block; }
+.mobile-menu a.mobile-link {
+  display: block;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--black-line);
+  text-decoration: none;
+  color: var(--white);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-variation-settings: "wdth" 104, "wght" 750;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.mobile-menu .btn { margin-top: var(--sp-5); }
+
+@media (min-width: 1000px) {
+  .nav-links { display: flex; }
+  .nav-cta { display: inline-flex; }
+  .nav-toggle { display: none; }
+  .mobile-menu { display: none !important; }
+}
+
+/* --------------------------------------------------------------------------
+   7. HERO
+   -------------------------------------------------------------------------- */
+.hero {
+  position: relative;
+  background: var(--black);
+  color: var(--white);
+  --fg: var(--white);
+  --fg-muted: var(--gray-400);
+  --line: var(--black-line);
+  overflow: hidden;
+}
+.hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(11 11 12 / 0.55) 0%, rgb(11 11 12 / 0.82) 55%, var(--black) 100%);
+}
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  padding-block: clamp(4.5rem, 12vw, 9rem) clamp(3rem, 6vw, 5rem);
+}
+.hero .display { max-width: 15ch; }
+.hero .lead { margin-top: var(--sp-5); max-width: 52ch; color: var(--gray-200); }
+
+/* Record line — a static stat row, set like a roster sheet, not a counter. */
+.recordline {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--black-line);
+  border-block: 1px solid var(--black-line);
+  margin-top: clamp(3rem, 6vw, 4.5rem);
+}
+.recordline > div {
+  background: var(--black);
+  padding: var(--sp-5) var(--sp-4);
+}
+.recordline .stat-num {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.4vw, 3rem);
+  font-variation-settings: "wdth" 122, "wght" 800;
+  line-height: 1;
+  color: var(--white);
+}
+.recordline .stat-num .hl { color: var(--accent); }
+.recordline .label { display: block; margin-top: 0.55rem; color: var(--gray-400); font-size: 0.7rem; }
+@media (min-width: 780px) { .recordline { grid-template-columns: repeat(4, 1fr); } }
+
+/* Page hero for interior pages (no media) */
+.page-hero {
+  background: var(--black);
+  color: var(--white);
+  --fg: var(--white);
+  --fg-muted: var(--gray-400);
+  padding-block: clamp(3.5rem, 8vw, 6rem) clamp(2.5rem, 5vw, 4rem);
+}
+.page-hero .lead { color: var(--gray-200); }
+
+/* --------------------------------------------------------------------------
+   8. MEDIA SLOTS
+   Intentional placeholders for real Triumph photography/video. They are
+   designed to look deliberate if the site ships before assets land.
+   Replace the whole element with <img>/<video> — keep the aspect class.
+   -------------------------------------------------------------------------- */
+.media-slot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: var(--sp-5);
+  background-color: #101013;
+  background-image:
+    repeating-linear-gradient(135deg, rgb(255 255 255 / 0.028) 0 2px, transparent 2px 9px);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: var(--radius);
+  overflow: hidden;
+  color: var(--gray-400);
+}
+.media-slot::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0;
+  width: 44px; height: 4px;
+  background: var(--accent);
+}
+.media-slot .label { font-size: 0.68rem; color: var(--gray-400); }
+.media-slot--hero { position: absolute; inset: 0; border: 0; border-radius: 0; padding: 0; }
+.media-slot--hero::before { display: none; }
+.media-slot--16x9 { aspect-ratio: 16 / 9; }
+.media-slot--4x5 { aspect-ratio: 4 / 5; }
+.media-slot--1x1 { aspect-ratio: 1 / 1; }
+.media-slot--3x2 { aspect-ratio: 3 / 2; }
+
+/* --------------------------------------------------------------------------
+   9. CARDS
+   -------------------------------------------------------------------------- */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: clamp(1.35rem, 2.4vw, 2rem);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  height: 100%;
+}
+.section--dark .card { background: var(--black-raised); }
+.card .h3 + p { color: var(--fg-muted); }
+.card p { color: var(--fg-muted); font-size: var(--step-small); }
+.card .card-index {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-variation-settings: "wdth" 80, "wght" 650;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+}
+
+.card--path {
+  position: relative;
+  padding-top: clamp(1.6rem, 3vw, 2.25rem);
+  border-top: 4px solid var(--accent);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.card--path:hover { transform: translateY(-3px); }
+.card--path .link { margin-top: auto; align-self: flex-start; padding-top: var(--sp-4); }
+
+/* Bullet list with a small accent tick */
+.ticks li {
+  position: relative;
+  padding-left: 1.5rem;
+  font-size: var(--step-small);
+  color: var(--fg-muted);
+}
+.ticks li + li { margin-top: 0.55rem; }
+.ticks li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 9px;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* Numbered variant — only for lists where the order is real information. */
+.ticks--num { counter-reset: tick; }
+.ticks--num li { padding-left: 2rem; }
+.ticks--num li::before {
+  counter-increment: tick;
+  content: counter(tick, decimal-leading-zero);
+  top: 0;
+  width: auto;
+  height: auto;
+  background: none;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-variation-settings: "wdth" 80, "wght" 700;
+  letter-spacing: 0.1em;
+  line-height: 1.9;
+}
+
+/* Pull quotes keep full contrast and scale inside cards and tiers, where the
+   surrounding paragraph rules would otherwise mute and shrink them. */
+.card p.pull,
+.tier p.pull,
+.level p.pull {
+  color: var(--fg);
+  font-size: clamp(1.1rem, 1.6vw, 1.35rem);
+}
+
+/* --------------------------------------------------------------------------
+   10. PATHWAY RAIL — the site's signature structural device.
+   Used only where the content is genuinely sequential.
+   -------------------------------------------------------------------------- */
+.rail { display: grid; gap: 0; counter-reset: step; }
+.rail-step {
+  position: relative;
+  padding: 0 0 var(--sp-6) var(--sp-6);
+  border-left: 2px solid var(--line);
+}
+.rail-step:last-child { padding-bottom: 0; border-left-color: transparent; }
+.rail-step::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.rail-step .card-index { display: block; margin-bottom: 0.3rem; }
+.rail-step p { color: var(--fg-muted); font-size: var(--step-small); max-width: 44ch; }
+
+@media (min-width: 860px) {
+  .rail { grid-template-columns: repeat(4, 1fr); gap: var(--sp-5); }
+  .rail-step {
+    padding: var(--sp-6) var(--sp-4) 0 0;
+    border-left: 0;
+    border-top: 2px solid var(--line);
+  }
+  .rail-step:last-child { border-top-color: var(--line); padding-bottom: 0; }
+  .rail-step::before { left: 0; top: -7px; }
+}
+
+/* --------------------------------------------------------------------------
+   11. FORMS
+   -------------------------------------------------------------------------- */
+.form-wrap {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.35rem, 3vw, 2.5rem);
+}
+.section--dark .form-wrap { background: var(--black-raised); }
+
+.field { display: block; margin-bottom: var(--sp-5); }
+.field > .label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--fg);
+  font-size: 0.74rem;
+}
+.field .hint { display: block; font-size: 0.82rem; color: var(--fg-muted); margin-top: 0.35rem; line-height: 1.45; }
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: 52px;
+  padding: 0.8rem 0.9rem;
+  font-family: var(--font-body);
+  font-size: 16px; /* prevents iOS zoom on focus */
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  appearance: none;
+}
+.section--dark .input,
+.section--dark .select,
+.section--dark .textarea { background: var(--black); color: var(--white); }
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+.textarea { min-height: 116px; resize: vertical; line-height: 1.55; }
+.select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%2367676f' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 12px;
+  padding-right: 2.4rem;
+}
+.input[aria-invalid="true"],
+.select[aria-invalid="true"],
+.textarea[aria-invalid="true"] { border-color: #d92d20; }
+
+.field-error {
+  display: none;
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: #d92d20;
+  font-weight: 600;
+}
+.section--dark .field-error { color: #ff8577; }
+.field-error.is-visible { display: block; }
+
+.checkbox {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  font-size: var(--step-small);
+  color: var(--fg-muted);
+  line-height: 1.5;
+  cursor: pointer;
+}
+.checkbox input {
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  flex: none;
+  accent-color: var(--accent);
+}
+
+/* Honeypot — visually hidden from humans, present for bots */
+.hp {
+  position: absolute !important;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.form-status { margin-top: var(--sp-4); font-size: var(--step-small); }
+.form-status:empty { margin-top: 0; }
+.form-status .ok,
+.form-status .err {
+  display: block;
+  padding: 1rem 1.15rem;
+  border-radius: var(--radius);
+  border-left: 4px solid var(--accent);
+  background: var(--gray-50);
+  color: var(--fg);
+}
+.section--dark .form-status .ok,
+.section--dark .form-status .err { background: rgb(255 255 255 / 0.06); }
+.form-status .err { border-left-color: #d92d20; }
+
+@media (min-width: 700px) {
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--sp-4); }
+}
+
+/* --------------------------------------------------------------------------
+   12. ACCORDION (FAQ)
+   -------------------------------------------------------------------------- */
+.accordion { border-top: 1px solid var(--line); }
+.accordion-item { border-bottom: 1px solid var(--line); }
+.accordion-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: 1.15rem 0;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-variation-settings: "wdth" 94, "wght" 700;
+  letter-spacing: 0.005em;
+  line-height: 1.3;
+  color: var(--fg);
+}
+.accordion-trigger:hover { color: var(--accent-deep); }
+.section--dark .accordion-trigger:hover { color: var(--accent); }
+.accordion-icon {
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+.accordion-icon::before,
+.accordion-icon::after {
+  content: "";
+  position: absolute;
+  background: var(--accent);
+  transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+.accordion-icon::before { left: 0; top: 9px; width: 20px; height: 2px; }
+.accordion-icon::after { left: 9px; top: 0; width: 2px; height: 20px; }
+.accordion-trigger[aria-expanded="true"] .accordion-icon::after { transform: scaleY(0); }
+.accordion-panel { display: none; padding: 0 0 1.35rem; }
+.accordion-panel.is-open { display: block; }
+.accordion-panel p { max-width: 68ch; color: var(--fg-muted); font-size: var(--step-small); }
+.accordion-panel p + p { margin-top: var(--sp-3); }
+
+/* --------------------------------------------------------------------------
+   13. JUNIOR WOLVES THEME + PYRAMID
+   .theme-jw only re-maps tokens. No component is redefined for Junior Wolves.
+   -------------------------------------------------------------------------- */
+.theme-jw {
+  --accent: var(--nw-red);
+  --accent-deep: var(--nw-red-deep);
+  --accent-ink: var(--nw-white);
+}
+
+.jw-hero {
+  background: var(--nw-black);
+  color: var(--nw-white);
+  --fg: var(--nw-white);
+  --fg-muted: var(--gray-400);
+  --line: var(--black-line);
+  position: relative;
+  overflow: hidden;
+}
+.jw-hero::before {
+  /* Diagonal red field — Niles West athletic signage, not Triumph's language */
+  content: "";
+  position: absolute;
+  inset: -20% -40% auto auto;
+  width: 70%;
+  height: 160%;
+  background: linear-gradient(180deg, var(--nw-red) 0%, var(--nw-red-deep) 100%);
+  transform: skewX(-14deg);
+  opacity: 0.16;
+}
+.jw-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  margin-bottom: var(--sp-5);
+}
+/* Logo slot: replace .jw-mark with the final Junior Wolves logo <img>. */
+.jw-mark {
+  width: 54px;
+  height: 54px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--nw-red);
+  border-radius: 4px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-variation-settings: "wdth" 78, "wght" 800;
+  letter-spacing: 0.02em;
+  color: var(--nw-white);
+}
+.jw-lockup-text .h4 { color: var(--nw-white); }
+.jw-lockup-text .label { display: block; color: var(--gray-400); font-size: 0.66rem; margin-top: 4px; }
+
+/* Sticky jump nav */
+.jumpnav {
+  position: sticky;
+  top: var(--nav-h);
+  z-index: 90;
+  background: var(--nw-black);
+  border-bottom: 1px solid var(--black-line);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.jumpnav::-webkit-scrollbar { display: none; }
+.jumpnav ul {
+  display: flex;
+  gap: 0;
+  min-width: max-content;
+  padding-inline: var(--gutter);
+  margin-inline: auto;
+  max-width: var(--max);
+}
+.jumpnav a {
+  display: block;
+  padding: 0.95rem 0.95rem;
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-variation-settings: "wdth" 80, "wght" 650;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--gray-400);
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+}
+.jumpnav a:hover { color: var(--nw-white); }
+.jumpnav a.is-active { color: var(--nw-white); border-bottom-color: var(--nw-red); }
+
+/* The pyramid: bar width encodes how wide the pipeline is at each stage.
+   Widest at 3rd–4th (recruit + retain), narrowest at high school (selection). */
+.pyramid { display: grid; gap: var(--sp-3); }
+.tier {
+  display: grid;
+  gap: var(--sp-3);
+  padding: clamp(1.15rem, 2.2vw, 1.75rem);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg);
+  width: 100%;
+}
+.section--dark .tier { background: var(--black-raised); }
+.tier-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem; }
+.tier-head .h3 { margin-right: auto; }
+.tier-flow {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-variation-settings: "wdth" 80, "wght" 650;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+}
+.tier p { color: var(--fg-muted); font-size: var(--step-small); max-width: 70ch; }
+@media (min-width: 900px) {
+  .pyramid { justify-items: center; }
+  .tier--1 { width: 100%; }
+  .tier--2 { width: 88%; }
+  .tier--3 { width: 76%; }
+  .tier--4 { width: 64%; }
+}
+
+/* Team structure levels */
+.level {
+  display: grid;
+  gap: var(--sp-3);
+  padding: clamp(1.25rem, 2.4vw, 1.85rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  height: 100%;
+}
+.section--dark .level { background: var(--black-raised); }
+.level-tag {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 0.3rem 0.65rem;
+  border-radius: 3px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-variation-settings: "wdth" 80, "wght" 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+/* Season / detail table */
+.spec-list { border-top: 1px solid var(--line); }
+.spec-list > div {
+  display: grid;
+  gap: 0.15rem 1.5rem;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.spec-list dt { font-family: var(--font-display); font-size: 0.74rem; font-variation-settings: "wdth" 80, "wght" 650; text-transform: uppercase; letter-spacing: 0.14em; color: var(--fg-muted); }
+.spec-list dd { margin: 0; font-size: var(--step-small); }
+@media (min-width: 620px) {
+  .spec-list > div { grid-template-columns: 220px 1fr; align-items: baseline; }
+}
+
+/* --------------------------------------------------------------------------
+   14. STAFF
+   -------------------------------------------------------------------------- */
+.staff-card { display: grid; gap: var(--sp-3); }
+.staff-card .h4 { margin-top: var(--sp-2); }
+.staff-role { font-size: 0.85rem; color: var(--fg-muted); }
+
+/* --------------------------------------------------------------------------
+   15. CTA BAND + FOOTER
+   -------------------------------------------------------------------------- */
+.cta-band {
+  background: var(--accent);
+  color: var(--accent-ink);
+  --fg: var(--accent-ink);
+  --line: color-mix(in srgb, var(--accent-ink) 20%, transparent);
+}
+.cta-band .btn--outline { border-color: var(--accent-ink); color: var(--accent-ink); }
+.cta-band .btn--outline:hover { background: var(--accent-ink); color: var(--accent); }
+.cta-band .btn--primary { background: var(--accent-ink); color: var(--accent); border-color: var(--accent-ink); }
+.cta-band .btn--primary:hover { background: color-mix(in srgb, var(--accent-ink) 85%, #fff); }
+.cta-band .lead { color: color-mix(in srgb, var(--accent-ink) 78%, transparent); }
+
+.site-footer {
+  background: var(--black);
+  color: var(--gray-400);
+  --fg: var(--white);
+  --line: var(--black-line);
+  padding-block: var(--sp-8) var(--sp-6);
+  font-size: var(--step-small);
+}
+.footer-grid { display: grid; gap: var(--sp-6); }
+@media (min-width: 800px) { .footer-grid { grid-template-columns: 1.4fr 1fr 1fr; gap: var(--sp-7); } }
+.site-footer a { color: var(--gray-400); text-decoration: none; }
+.site-footer a:hover { color: var(--white); text-decoration: underline; text-underline-offset: 3px; }
+.footer-heading { color: var(--white); margin-bottom: var(--sp-4); }
+.footer-links li + li { margin-top: 0.6rem; }
+.footer-bottom {
+  margin-top: var(--sp-7);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--black-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3) var(--sp-5);
+  justify-content: space-between;
+  font-size: 0.82rem;
+}
+
+/* --------------------------------------------------------------------------
+   16. MOTION — reveals are progressive enhancement, added by JS only.
+   -------------------------------------------------------------------------- */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 620ms var(--ease), transform 620ms var(--ease);
+  will-change: opacity, transform;
+}
+.js [data-reveal].is-in { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  [data-reveal] { opacity: 1 !important; transform: none !important; }
+}
+
+/* --------------------------------------------------------------------------
+   17. PRINT
+   -------------------------------------------------------------------------- */
+@media print {
+  .site-header, .jumpnav, .cta-band, .site-footer, .media-slot { display: none !important; }
+  .accordion-panel { display: block !important; }
+  body { color: #000; background: #fff; }
+}
