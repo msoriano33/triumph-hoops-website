@@ -142,6 +142,65 @@ Then set up Gmail filters so the inbox stays organized — for example, a label 
 `Junior Wolves` for subjects containing `JUNIOR WOLVES`, and `Training` for subjects
 containing `TRAINING INQUIRY`.
 
+### Troubleshooting — "the form would not submit"
+
+**This exact failure happened in production on 20 August 2026** and cost a real
+registration. Symptom: the family fills in the form, presses submit, and gets an error
+telling them to email instead. The endpoint returns HTTP 502.
+
+Cause: `RESEND_API_KEY` and `MAIL_FROM` were both set correctly, the serverless function
+was deployed and running — but Resend refused every message with:
+
+```
+403 — The triumphhoopsacademy.com domain is not verified.
+      Please, add and verify your domain on https://resend.com/domains
+```
+
+Resend needs **three** DNS records before it will send from a domain. Two of the three were
+present at the registrar; the **MX record on the `send` subdomain was missing**, so the
+domain never finished verifying:
+
+| Type | Host (name)         | Value                                          | Priority | Status         |
+|------|---------------------|------------------------------------------------|----------|----------------|
+| TXT  | `resend._domainkey` | `p=MIGfMA0GCS…` (DKIM key)                     | —        | present        |
+| TXT  | `send`              | `v=spf1 include:amazonses.com ~all`            | —        | present        |
+| MX   | `send`              | `feedback-smtp.<region>.amazonses.com`         | `10`     | **MISSING**    |
+
+Fix:
+
+1. Open <https://resend.com/domains> → `triumphhoopsacademy.com`.
+2. Copy the **MX** row exactly as shown there — the region in the hostname
+   (`us-east-1`, `eu-west-1`, …) must match your account, so do not type it from memory.
+3. Add it at the registrar (DNS is on Namecheap: `dns1/dns2.registrar-servers.com`).
+   Host `send`, type `MX`, priority `10`.
+   This does **not** affect the existing root-domain MX records that handle
+   `@triumphhoopsacademy.com` email forwarding — it is a separate subdomain.
+4. Back in Resend, press **Verify DNS Records** and wait for the status to turn *Verified*.
+5. Re-submit a form on the live site to confirm.
+
+**Diagnosing it again in future.** From any browser console on the live site:
+
+```js
+await fetch('/api/inquiry', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    source: 'general_contact', parent_name: 'TEST',
+    parent_email: 'test@example.com', page: 'diagnostic'
+  })
+}).then(r => r.status);
+```
+
+`200` = delivering. `502` = the provider rejected it — open the function logs in
+Vercel (*Project → Logs*, filter `[inquiry]`) for the exact provider message. The browser
+deliberately never shows that message; only the server log does.
+
+**Fallback sender.** If the sending domain ever stops verifying again, `api/inquiry.js`
+now retries once from Resend's shared `onboarding@resend.dev` sender so the family's
+submission still reaches the inbox. That sender only delivers to the address the Resend
+account was created with, so it is a safety net — not a substitute for a verified domain.
+When it is used, the function logs `delivered via FALLBACK sender`.
+
 ### If you can't run a serverless function
 
 Use **Netlify Forms** or **Formspree** instead:
@@ -166,9 +225,67 @@ The forms will keep working exactly the same way — only the destination change
 
 ---
 
-## Future: lead data beyond email
+## Step 4 — Junior Wolves registration database (Google Sheet)
 
-Email is the source of truth today. Every submission already carries a `source` tag
-(`junior_wolves_tryout`, `weekly_training`, and so on) and clean labeled fields, so when
-you're ready to add a Google Sheet, a CRM, or automated follow-ups, that work amounts to
-adding one more step inside `api/inquiry.js` — no changes to the website itself.
+Junior Wolves registrations are saved in **two** places: the Triumph inbox (immediate
+notification) and a private Google Sheet (the durable, sortable database). The two are
+attempted independently — if one fails the other still captures the registration, and the
+family only sees an error if **both** fail.
+
+Every other Triumph form is unchanged and stays email-only.
+
+### 4a. Where the Sheet lives
+
+Workbook: **JUNIOR WOLVES — 2026–27 REGISTRATION + TRYOUT MASTER**
+Owner: `triumphhoopsacademy@gmail.com`
+Tabs: `MASTER REGISTRATIONS` (all rows) and `README / FIELD GUIDE`.
+
+Columns A–P are what the family submitted and should not be edited. Columns Q–AI are
+internal coach fields (attendance, evaluation scores, placement, offers, payment,
+follow-up) and are never shown to parents or submitted from the website.
+
+### 4b. How the website writes to it
+
+The Sheet has a bound Apps Script (**Extensions → Apps Script**) deployed as a Web App.
+`api/inquiry.js` POSTs each Junior Wolves registration to that deployment's `/exec` URL
+with a shared secret. This approach was chosen over the Google Sheets API because it needs
+no dependencies, no service-account private key and no token refresh — the site has no
+`package.json` and this keeps it that way.
+
+The script source is version-controlled at `ops/junior-wolves-sheet.gs`. If you ever edit
+the script in Google, paste the change back into that file so the two stay in sync.
+
+### 4c. Environment variables
+
+Add these in Vercel → Settings → Environment Variables (Production):
+
+| Variable                 | What it is                                                    |
+|--------------------------|---------------------------------------------------------------|
+| `SHEETS_WEBHOOK_URL`     | the Apps Script Web App `/exec` URL for the master sheet       |
+| `SHEETS_WEBHOOK_SECRET`  | shared secret; must match `SHEETS_WEBHOOK_SECRET` in the script's Script Properties |
+
+Both are server-side only and are never sent to the browser. Never commit either value.
+
+**If `SHEETS_WEBHOOK_URL` is unset, Sheet logging is skipped and the site behaves exactly
+as it did before — email only.** Nothing breaks.
+
+### 4d. Reconnecting it if rows stop arriving
+
+1. Open the Sheet → **Extensions → Apps Script → Deployments**.
+2. Confirm there is an active **Web app** deployment, *Execute as: Me*,
+   *Who has access: Anyone*.
+3. Copy its `/exec` URL and compare it to `SHEETS_WEBHOOK_URL` in Vercel. **Creating a new
+   deployment version changes the URL** — this is the usual cause. Update Vercel and redeploy.
+4. Confirm the script's Script Property `SHEETS_WEBHOOK_SECRET` matches Vercel's.
+5. Submit a test registration and check the Vercel function log. It prints one clear line:
+   `CAPTURED BY EMAIL + SHEET`, `REGISTRATION CAPTURED BY EMAIL — SHEET LOGGING FAILED`, or
+   `REGISTRATION CAPTURED BY SHEET — EMAIL DELIVERY FAILED`.
+
+While the Sheet is disconnected, registrations still arrive by email — and each of those
+emails says `Google Sheet: NOT LOGGED`, so you know exactly which rows to add by hand.
+
+### 4e. Submission IDs
+
+Every submission gets an ID like `JW-2026-A1B2C3D4`. The same ID appears at the top of the
+notification email and in column A of the Sheet, so any row can be matched back to its
+email if you ever need to troubleshoot.
