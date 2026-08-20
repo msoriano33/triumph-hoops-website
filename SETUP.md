@@ -225,6 +225,33 @@ The forms will keep working exactly the same way — only the destination change
 
 ---
 
+## IMPORTANT — after you edit CSS or JS
+
+Asset URLs in the HTML carry a version stamp, e.g.
+
+```html
+<link rel="stylesheet" href="assets/css/styles.css?v=20260820c">
+<script src="assets/js/main.js?v=20260820c"></script>
+```
+
+**Whenever you change `styles.css` or any file in `assets/js/`, bump that stamp**
+(any new value — the date works well) in every `.html` file. Find and replace
+`?v=20260820c` with the new value.
+
+Why this matters: on 2026-08-20 the Fall campaign shipped but the CDN kept
+serving a 3.6-day-old `styles.css`. The HTML was new, the CSS was old, and the
+new sections rendered as unstyled white blocks with default browser links. The
+version stamp changes the URL, so a new file is always fetched immediately.
+
+Asset caching is also set to 5 minutes in `vercel.json` as a safety net, so even
+if you forget to bump the stamp, changes go live within a few minutes rather
+than a week.
+
+Note when testing: fetching an asset with a cache-busting query string
+(`?anything`) bypasses the cache and will always look correct. To check what
+real visitors are getting, request the URL **without** a query string and look
+at the `age` and `x-vercel-cache` response headers.
+
 ## Step 4 — Junior Wolves registration database (Google Sheet)
 
 Junior Wolves registrations are saved in **two** places: the Triumph inbox (immediate
