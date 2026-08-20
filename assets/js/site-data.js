@@ -60,6 +60,7 @@ window.TRIUMPH_DATA = {
       "development_team_interest",
       "aau_travel_interest",
       "junior_wolves_tryout",
+      "junior_wolves_interest",
       "coaching_interest",
       "general_contact"
     ]
@@ -125,21 +126,76 @@ window.TRIUMPH_DATA = {
   ],
 
   /* ---------------------------------------------------------------------
+     NILES WEST JUNIOR WOLVES — 2026-27 FALL CAMPAIGN
+     ---------------------------------------------------------------------
+     THIS IS THE BLOCK TO EDIT WHEN A LINK GOES LIVE.
+
+     The Fall dates themselves live in junior-wolves.html (they are page copy
+     and search engines need to read them). What lives here is STATE: whether
+     a link exists yet, and where it points. Every "COMING SOON" state on the
+     page is produced by an empty string below — fill it in and the button
+     turns into a real link with no other edit anywhere.
+     --------------------------------------------------------------------- */
+  juniorWolvesFall: {
+    seasonLabel: "2026–27 Junior Wolves",
+
+    /* --- OFFICIAL ASSETS ----------------------------------------------
+       Drop the real files in /assets/img/ and point at them here. Both are
+       intentionally empty: no AI-generated stand-in is used for the Junior
+       Wolves logo, and the hero runs type-only until a real photo exists. */
+    logo: "",            // e.g. "assets/img/junior-wolves-logo.png"
+    heroImage: "",       // e.g. "assets/img/jw-hero.jpg"  (portrait, ~4:5)
+    heroImageAlt: "Niles West Junior Wolves player driving to the basket",
+
+    /* --- VIRTUAL TOWN HALL + MEET THE COACHES -------------------------- */
+    townHall: {
+      /* Paste the Zoom / Meet / Teams URL here when it exists.
+         Empty string = the page shows a "Link coming soon" state. */
+      url: "",
+      /* Optional: a dial-in or passcode note shown under the button. */
+      note: ""
+    },
+
+    /* --- TRYOUT REGISTRATION ------------------------------------------- */
+    tryoutRegistration: {
+      /* "scheduled" = not open yet; the page shows "Opens Monday, September 8"
+                       and the form below collects the interest list.
+         "open"      = registration is live; the page flips to
+                       "Register for tryouts" and the form submits as a
+                       tryout registration.
+         Change this ONE word on September 8. */
+      status: "scheduled",
+
+      /* Optional external registration URL (e.g. a league or payment
+         platform). Leave empty to keep using the form on this page. */
+      url: ""
+    },
+
+    /* --- FALL OPEN SKILLS CLINICS -------------------------------------- */
+    clinics: {
+      /* Empty = clinics are walk-in / no separate signup, and the page points
+         families at the Junior Wolves list instead. Add a URL to turn the
+         clinic buttons into real registration links. */
+      url: ""
+    }
+  },
+
+  /* ---------------------------------------------------------------------
      NILES WEST JUNIOR WOLVES — season details.
      Anything left as "TBA" renders as a clean "To be announced" chip.
      --------------------------------------------------------------------- */
   juniorWolvesSeason: {
     league: "CFL",
     grades: "3rd–8th grade boys",
-    tryoutDates: "Week of October 12",
+    tryoutDates: "Week of October 26 — exact grade-level dates TBA",
     tryoutLocation: "Niles West High School",
-    seasonDates: "TBA",
-    practiceDays: "TBA",
-    practiceTimes: "TBA",
+    seasonDates: "Practices begin approximately November 2; league games begin approximately December 5",
+    practiceDays: "Approximately 2x per week — Monday/Wednesday or Tuesday/Thursday depending on the team",
+    practiceTimes: "Approximately 6:00–8:00 PM",
     practiceLocations: "TBA",
-    gameWindows: "Weekends",
+    gameWindows: "Primarily Saturday and Sunday",
     scheduleNote:
-      "The CFL schedule is released in phases. The first portion covers approximately December; the second half is typically provided around winter break.",
+      "Tryout, practice and game details are confirmed and posted here as they are locked in. Exact team schedules vary — not every team receives an identical schedule. The CFL schedule is released in phases: the first portion covers approximately December, and the second half is typically provided around winter break.",
     uniforms: "Included in the program fee. Distributed before the first game."
   },
 
@@ -148,6 +204,6 @@ window.TRIUMPH_DATA = {
     amount: "TBA",
     includes: "TBA",
     paymentDue: "TBA",
-    note: "Fees are finalized before tryouts and shared in writing with every family. Payment is only collected after a player has been placed."
+    note: "2026–27 program fees are finalized before tryouts and shared in writing with every family. Payment is only collected after a player has been placed."
   }
 };
