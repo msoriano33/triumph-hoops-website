@@ -1273,6 +1273,7 @@ button { font: inherit; color: inherit; }
 .keydate-link {
   display: inline-flex;
   align-items: center;
+  gap: 0.4rem;
   margin-top: 0.55rem;
   font-family: var(--font-display);
   font-size: 0.72rem;
@@ -1284,8 +1285,13 @@ button { font: inherit; color: inherit; }
   border-bottom: 2px solid var(--nw-red);
   padding: 0.5rem 0 0.35rem;
   min-height: 34px;
+  transition: gap var(--dur) var(--ease), color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
 }
-.keydate-link:hover { color: var(--nw-red); }
+/* Arrow, not a browser underline. Matches the .link component elsewhere. */
+.keydate-link::after { content: "\2192"; font-family: var(--font-body); font-size: 0.95em; }
+.keydate-link:hover { color: var(--nw-red-bright); gap: 0.7rem; border-bottom-color: var(--nw-red-bright); }
+.keydate-link:focus-visible { outline: 3px solid var(--nw-red-bright); outline-offset: 4px; }
 @media (min-width: 780px) {
   .keydates { grid-template-columns: repeat(3, 1fr); gap: 0 clamp(1.5rem, 3vw, 2.5rem); }
   .keydate { border-bottom: 0; border-left: 1px solid var(--black-line); padding: 1.75rem 0 1.75rem clamp(1.25rem, 2vw, 1.75rem); }
@@ -1480,6 +1486,13 @@ button { font: inherit; color: inherit; }
 .clinic-note p { color: var(--fg-muted); }
 .clinic-note p + p { margin-top: var(--sp-3); }
 .clinic-note .btn-row { margin-top: var(--sp-5); }
+
+/* On dark surfaces the clinic + location cards need to lift off the page,
+   and small red type needs the brighter tint to clear WCAG AA. */
+.section--dark .clinic-card,
+.section--dark .locblock { background: var(--black-raised); }
+.section--dark .clinic-index { color: var(--nw-red-bright); }
+.section--dark .locblock .label { color: var(--gray-400); }
 
 /* --- Season timeline ---------------------------------------------------- */
 .timeline { display: grid; gap: 0; }
