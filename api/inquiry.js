@@ -33,6 +33,30 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const FALLBACK_FROM = "Triumph Website <onboarding@resend.dev>";
 const RESEND_URL = "https://api.resend.com/emails";
 
+const crypto = require("crypto");
+
+/* --------------------------------------------------------------------------
+   GOOGLE SHEET LOGGING (Junior Wolves registration master database)
+   --------------------------------------------------------------------------
+   A Google Apps Script Web App bound to the master spreadsheet. Chosen over
+   the Sheets API because it needs no dependencies, no service-account private
+   key and no token refresh — it fits this zero-dependency serverless function.
+
+     SHEETS_WEBHOOK_URL      the Apps Script /exec deployment URL
+     SHEETS_WEBHOOK_SECRET   shared secret; the script rejects anything else
+
+   Both are server-side only. Neither is ever sent to the browser.
+   If SHEETS_WEBHOOK_URL is unset, sheet logging is skipped and email-only
+   behaviour is unchanged — no other form on the site is affected.
+   -------------------------------------------------------------------------- */
+const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
+const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
+const SHEET_TIMEOUT_MS = 5000;
+
+/* Only Junior Wolves submissions go to the registration database. Every other
+   Triumph form keeps its existing email-only behaviour. */
+const SHEET_SOURCES = new Set(["junior_wolves_tryout", "junior_wolves_interest"]);
+
 /* --------------------------------------------------------------------------
    Field map — label shown in the email, keyed by form field name.
    Add a field to a form, add it here, and it appears in the email.
@@ -168,10 +192,13 @@ function buildSubject(fields) {
 /* --------------------------------------------------------------------------
    Body — same information as plain text and HTML, formatted for a phone.
    -------------------------------------------------------------------------- */
-function buildBody(fields, notes) {
-  const rows = FIELD_ORDER
+function buildBody(fields, notes, meta) {
+  meta = meta || {};
+  const rows = [];
+  if (meta.submissionId) rows.push(["Submission ID", meta.submissionId]);
+  FIELD_ORDER
     .filter((key) => fields[key])
-    .map((key) => [FIELD_LABELS[key], clean(fields[key])]);
+    .forEach((key) => rows.push([FIELD_LABELS[key], clean(fields[key])]));
 
   /* Anything the family submitted that is not in FIELD_LABELS still gets
      printed. A parent's answer is never silently discarded because a field
@@ -188,6 +215,11 @@ function buildBody(fields, notes) {
   rows.push(["Submitted", new Date().toLocaleString("en-US", { timeZone: "America/Chicago" }) + " CT"]);
   if (fields.page) rows.push(["Page", clean(fields.page, 300)]);
   rows.push(["Source", clean(fields.source)]);
+
+  /* Capture status: which durable destinations actually hold this
+     registration. If the Sheet did not get it, this line is how Triumph
+     finds out in time to add the row by hand. */
+  if (meta.captureStatus) rows.push(["Capture status", meta.captureStatus]);
   (notes || []).forEach((note) => rows.push(["Note", note]));
 
   const text = rows.map(([label, value]) => label.toUpperCase() + "\n" + value).join("\n\n");
@@ -248,10 +280,82 @@ function submissionNotes(fields) {
 }
 
 /* --------------------------------------------------------------------------
+   Submission ID — printed in the email AND written to the Sheet so a row can
+   always be matched back to its notification. Not derived from the player's
+   name, which is neither unique nor stable.
+   -------------------------------------------------------------------------- */
+function newSubmissionId(source) {
+  const prefix = SHEET_SOURCES.has(source) ? "JW" : "THA";
+  const year = new Date().getFullYear();
+  return prefix + "-" + year + "-" + crypto.randomBytes(4).toString("hex").toUpperCase();
+}
+
+/* Coaches sort and build check-in lists by last name, so the Sheet gets the
+   name split out as well as whole. Everything after the first token is the
+   last name, which handles "Yusuf Hassan" and "Juan de la Cruz" alike. */
+function splitName(full) {
+  const value = clean(full, 200);
+  if (!value) return { first: "", last: "" };
+  const parts = value.split(/\s+/);
+  if (parts.length === 1) return { first: parts[0], last: "" };
+  return { first: parts[0], last: parts.slice(1).join(" ") };
+}
+
+async function logToSheet(fields, submissionId) {
+  if (!SHEET_SOURCES.has(fields.source)) return { logged: false, skipped: "not_a_registration_source" };
+  if (!SHEETS_WEBHOOK_URL) return { logged: false, skipped: "not_configured" };
+
+  const name = splitName(fields.player_name);
+  const payload = {
+    secret: SHEETS_WEBHOOK_SECRET,
+    submissionId: submissionId,
+    submittedAt: new Date().toISOString(),
+    source: fields.source,
+    submissionType: SUBMISSION_TYPES[fields.source] || "Junior Wolves",
+    playerFirstName: name.first,
+    playerLastName: name.last,
+    playerFullName: clean(fields.player_name, 200),
+    grade: clean(fields.player_grade, 60),
+    school: clean(fields.school, 200),
+    parentName: clean(fields.parent_name, 200),
+    parentEmail: clean(fields.parent_email, 200),
+    parentPhone: clean(fields.parent_phone, 60),
+    experience: clean(fields.experience, 200),
+    currentTeam: clean(fields.current_team, 200),
+    notes: clean(fields.message, 2000),
+    eligibilityAcknowledged: fields.district_confirm ? "Yes" : "No",
+    page: clean(fields.page, 300)
+  };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SHEET_TIMEOUT_MS);
+  try {
+    const response = await fetch(SHEETS_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      redirect: "follow",
+      signal: controller.signal
+    });
+    const raw = await response.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch (e) { /* non-JSON = failure */ }
+    if (!response.ok || !data.ok) {
+      return { logged: false, error: "sheet responded " + response.status + " " + raw.slice(0, 200) };
+    }
+    return { logged: true, row: data.row, duplicate: !!data.duplicate };
+  } catch (err) {
+    return { logged: false, error: err.name === "AbortError" ? "sheet timed out" : err.message };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* --------------------------------------------------------------------------
    Send
    -------------------------------------------------------------------------- */
-async function postToResend(from, fields, notes) {
-  const { text, html } = buildBody(fields, notes);
+async function postToResend(from, fields, notes, meta) {
+  const { text, html } = buildBody(fields, notes, meta);
 
   const response = await fetch(RESEND_URL, {
     method: "POST",
@@ -287,7 +391,7 @@ function isSenderDomainProblem(result) {
   return /not verified|verify (your )?domain|domain is not|resend\.com\/domains/i.test(result.detail || "");
 }
 
-async function sendEmail(fields, notes) {
+async function sendEmail(fields, notes, meta) {
   if (!RESEND_API_KEY) {
     const err = new Error("RESEND_API_KEY is not set in the hosting environment.");
     err.code = "not_configured";
@@ -295,7 +399,7 @@ async function sendEmail(fields, notes) {
   }
 
   const primaryFrom = MAIL_FROM || FALLBACK_FROM;
-  let result = await postToResend(primaryFrom, fields, notes);
+  let result = await postToResend(primaryFrom, fields, notes, meta);
 
   /* Sending domain broken -> retry once from the provider's shared sender so
      the submission still reaches the Triumph inbox. */
@@ -306,7 +410,7 @@ async function sendEmail(fields, notes) {
       "| status:", result.status,
       "| detail:", result.detail
     );
-    const retry = await postToResend(FALLBACK_FROM, fields, notes);
+    const retry = await postToResend(FALLBACK_FROM, fields, notes, meta);
     if (retry.ok) {
       console.warn("[inquiry] delivered via FALLBACK sender. Verify the sending domain at resend.com/domains.");
       return { ...retry, usedFallbackSender: true };
@@ -383,23 +487,84 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ delivered: false, error: errors[0] });
   }
 
+  /* ------------------------------------------------------------------
+     TWO DURABLE DESTINATIONS: the Google Sheet and the Triumph inbox.
+     They are attempted independently — neither failing stops the other.
+     The registration is safely captured if EITHER one succeeds.
+
+     The Sheet runs first, and only because it is fast, so its result can be
+     printed in the email. If the Sheet failed, the email says so and Triumph
+     can add the row by hand instead of discovering the gap weeks later.
+     ------------------------------------------------------------------ */
+  const submissionId = newSubmissionId(fields.source);
+  const notes = submissionNotes(fields);
+  const who = clean(fields.player_name) || clean(fields.parent_name);
+
+  const sheet = await logToSheet(fields, submissionId);
+
+  let captureStatus;
+  if (sheet.logged) {
+    captureStatus = "Google Sheet: Logged (row " + (sheet.row || "?") + ")";
+  } else if (sheet.skipped) {
+    captureStatus = null; /* not a registration form — say nothing */
+  } else {
+    captureStatus = "Google Sheet: NOT LOGGED — add this registration to the master sheet by hand.";
+  }
+
+  let email = { sent: false };
   try {
-    const sent = await sendEmail(fields, submissionNotes(fields));
-    if (encoded) { res.writeHead(303, { Location: "/thank-you" }); return res.end(); }
-    return res.status(200).json({ delivered: true, fallbackSender: !!sent.usedFallbackSender });
+    const sent = await sendEmail(fields, notes, {
+      submissionId: submissionId,
+      captureStatus: captureStatus
+        ? "Email: Delivered\n" + captureStatus
+        : null
+    });
+    email = { sent: true, usedFallbackSender: !!sent.usedFallbackSender };
   } catch (err) {
-    /* Full detail goes to the server log only. The browser gets a safe,
-       useful sentence — never a provider message, key name or stack trace. */
+    email = { sent: false, code: err.code || "error", message: err.message };
+  }
+
+  /* ---- one clear server-side line per outcome, for diagnosis ---- */
+  const tag = "| id: " + submissionId + " | source: " + fields.source + " | " + who;
+  if (email.sent && sheet.logged) {
+    console.log("[inquiry] CAPTURED BY EMAIL + SHEET", tag);
+  } else if (email.sent && sheet.skipped) {
+    console.log("[inquiry] CAPTURED BY EMAIL (sheet not applicable:", sheet.skipped + ")", tag);
+  } else if (email.sent && !sheet.logged) {
+    console.error("[inquiry] REGISTRATION CAPTURED BY EMAIL — SHEET LOGGING FAILED |", sheet.error, tag);
+  } else if (!email.sent && sheet.logged) {
+    console.error("[inquiry] REGISTRATION CAPTURED BY SHEET — EMAIL DELIVERY FAILED |", email.message, tag);
+  } else {
     console.error(
-      "[inquiry] DELIVERY FAILED |", err.code || "error", "|", err.message,
-      "| source:", fields.source, "| player:", clean(fields.player_name)
+      "[inquiry] TOTAL CAPTURE FAILURE — NOTHING SAVED | email:", email.message,
+      "| sheet:", sheet.error || sheet.skipped, tag
     );
-    if (encoded) { res.writeHead(303, { Location: "/thank-you?status=error" }); return res.end(); }
-    return res.status(502).json({
-      delivered: false,
-      error: "We couldn't deliver your submission right now."
+  }
+
+  const captured = email.sent || sheet.logged;
+
+  if (encoded) {
+    res.writeHead(303, { Location: captured ? "/thank-you" : "/thank-you?status=error" });
+    return res.end();
+  }
+
+  if (captured) {
+    return res.status(200).json({
+      delivered: true,
+      submissionId: submissionId,
+      emailDelivered: email.sent,
+      sheetLogged: !!sheet.logged
     });
   }
+
+  /* Both destinations failed. The browser gets a safe sentence and keeps every
+     value the family typed — never a provider message, key name or stack. */
+  return res.status(502).json({
+    delivered: false,
+    emailDelivered: false,
+    sheetLogged: false,
+    error: "We couldn't deliver your submission right now."
+  });
 };
 
 /* Exported for testing / reuse by a Netlify or Cloudflare wrapper. */
@@ -407,3 +572,6 @@ module.exports.buildSubject = buildSubject;
 module.exports.buildBody = buildBody;
 module.exports.validate = validate;
 module.exports.sendEmail = sendEmail;
+module.exports.logToSheet = logToSheet;
+module.exports.newSubmissionId = newSubmissionId;
+module.exports.splitName = splitName;
