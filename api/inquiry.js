@@ -23,6 +23,14 @@
 const MAIL_TO = process.env.MAIL_TO || "triumphhoopsacademy@gmail.com";
 const MAIL_FROM = process.env.MAIL_FROM || "";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+
+/* Resend's shared testing sender. It is always "verified", but the provider
+   only delivers from it to the email address the Resend account was created
+   with. We never use it first — it is a safety net so that a family's
+   submission still lands in the Triumph inbox if the custom sending domain
+   stops verifying (expired DNS, moved registrar, etc.) instead of the lead
+   being lost. Delivery is attempted from MAIL_FROM first, every time. */
+const FALLBACK_FROM = "Triumph Website <onboarding@resend.dev>";
 const RESEND_URL = "https://api.resend.com/emails";
 
 /* --------------------------------------------------------------------------
@@ -49,6 +57,22 @@ const FIELD_LABELS = {
 
 const FIELD_ORDER = Object.keys(FIELD_LABELS);
 
+/* Internal plumbing that should never be printed as a field in the email. */
+const INTERNAL_FIELDS = new Set(["source", "page", "hp_company", "form_started"]);
+
+/* Human-readable label for the email body, keyed by lead source. */
+const SUBMISSION_TYPES = {
+  homepage_get_started: "Get Started (home page)",
+  weekly_training: "Weekly Training Inquiry",
+  sunday_training: "Sunday Development Inquiry",
+  development_team_interest: "Development Team Interest",
+  aau_travel_interest: "AAU / Travel Interest",
+  junior_wolves_tryout: "Junior Wolves Tryout Registration",
+  junior_wolves_interest: "Junior Wolves Interest",
+  coaching_interest: "Coaching Interest",
+  general_contact: "General Contact"
+};
+
 const VALID_SOURCES = [
   "homepage_get_started",
   "weekly_training",
@@ -56,6 +80,7 @@ const VALID_SOURCES = [
   "development_team_interest",
   "aau_travel_interest",
   "junior_wolves_tryout",
+  "junior_wolves_interest",
   "coaching_interest",
   "general_contact"
 ];
@@ -64,7 +89,10 @@ const VALID_SOURCES = [
    treat this as a speed bump, not a security control. */
 const recent = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
-const RATE_MAX = 5;
+/* Raised from 5. A family whose first attempt fails will retry, and several
+   families can share one network (a school, a gym's wifi, a phone carrier's
+   NAT). Five per minute was tight enough to lock out real people mid-retry. */
+const RATE_MAX = 12;
 
 function rateLimited(ip) {
   const now = Date.now();
@@ -116,13 +144,19 @@ function buildSubject(fields) {
       parts.push("NEW AAU / TRAVEL INTEREST", who);
       break;
     case "junior_wolves_tryout":
-      parts.push("NEW JUNIOR WOLVES TRYOUT REGISTRATION", who, player);
-      break;
+      return ["JUNIOR WOLVES — TRYOUT REGISTRATION", player || who]
+        .filter(Boolean).join(" — ").slice(0, 180);
+    case "junior_wolves_interest":
+      return ["JUNIOR WOLVES — NEW PLAYER INTEREST", player || who]
+        .filter(Boolean).join(" — ").slice(0, 180);
     case "coaching_interest":
       parts.push("NEW COACHING INTEREST", clean(fields.parent_name).toUpperCase());
       break;
     case "general_contact":
       parts.push("NEW GENERAL CONTACT", clean(fields.parent_name).toUpperCase());
+      break;
+    case "homepage_get_started":
+      parts.push("NEW INQUIRY — GET STARTED", who, player);
       break;
     default:
       parts.push("NEW TRIUMPH INQUIRY", who, clean(fields.interest).toUpperCase());
@@ -134,14 +168,27 @@ function buildSubject(fields) {
 /* --------------------------------------------------------------------------
    Body — same information as plain text and HTML, formatted for a phone.
    -------------------------------------------------------------------------- */
-function buildBody(fields) {
+function buildBody(fields, notes) {
   const rows = FIELD_ORDER
     .filter((key) => fields[key])
     .map((key) => [FIELD_LABELS[key], clean(fields[key])]);
 
-  rows.push(["Source", fields.source]);
+  /* Anything the family submitted that is not in FIELD_LABELS still gets
+     printed. A parent's answer is never silently discarded because a field
+     was added to a form and not to the label map. */
+  Object.keys(fields).forEach((key) => {
+    if (INTERNAL_FIELDS.has(key)) return;
+    if (FIELD_LABELS[key]) return;
+    const value = clean(fields[key]);
+    if (!value) return;
+    rows.push([key.replace(/_/g, " "), value]);
+  });
+
+  rows.push(["Submission type", SUBMISSION_TYPES[fields.source] || "Website inquiry"]);
   rows.push(["Submitted", new Date().toLocaleString("en-US", { timeZone: "America/Chicago" }) + " CT"]);
   if (fields.page) rows.push(["Page", clean(fields.page, 300)]);
+  rows.push(["Source", clean(fields.source)]);
+  (notes || []).forEach((note) => rows.push(["Note", note]));
 
   const text = rows.map(([label, value]) => label.toUpperCase() + "\n" + value).join("\n\n");
 
@@ -169,33 +216,42 @@ function buildBody(fields) {
 function validate(fields) {
   const errors = [];
 
+  /* A filled honeypot is a definite bot: no human sees that field. */
   if (fields.hp_company) errors.push("spam");
-  const started = Number(fields.form_started || 0);
-  if (started && Date.now() - started < 2500) errors.push("too fast");
 
   if (!fields.source || !VALID_SOURCES.includes(fields.source)) errors.push("Unknown form source.");
   if (!fields.parent_name) errors.push("Parent / guardian name is required.");
   if (!fields.parent_email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(fields.parent_email)) {
     errors.push("A valid email address is required.");
   }
-  if (fields.source === "junior_wolves_tryout" && !fields.acknowledgement) {
+  if (
+    (fields.source === "junior_wolves_tryout" || fields.source === "junior_wolves_interest") &&
+    !fields.acknowledgement
+  ) {
     errors.push("Tryout acknowledgement is required.");
   }
 
   return errors;
 }
 
+/* A suspiciously fast submission used to be dropped with a fake "delivered"
+   response — which silently lost the lead and showed the family a success
+   screen. It is now only a note printed in the email. Losing a real family is
+   far more expensive than reading one spam message. */
+function submissionNotes(fields) {
+  const notes = [];
+  const started = Number(fields.form_started || 0);
+  if (started && Date.now() - started < 2500) {
+    notes.push("Submitted unusually quickly — may be automated. Verify before replying.");
+  }
+  return notes;
+}
+
 /* --------------------------------------------------------------------------
    Send
    -------------------------------------------------------------------------- */
-async function sendEmail(fields) {
-  if (!RESEND_API_KEY || !MAIL_FROM) {
-    throw new Error(
-      "Email is not configured yet. Set RESEND_API_KEY and MAIL_FROM in the hosting environment."
-    );
-  }
-
-  const { text, html } = buildBody(fields);
+async function postToResend(from, fields, notes) {
+  const { text, html } = buildBody(fields, notes);
 
   const response = await fetch(RESEND_URL, {
     method: "POST",
@@ -204,7 +260,7 @@ async function sendEmail(fields) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      from: MAIL_FROM,
+      from,
       to: [MAIL_TO],
       reply_to: fields.parent_email,
       subject: buildSubject(fields),
@@ -213,12 +269,60 @@ async function sendEmail(fields) {
     })
   });
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error("Email provider rejected the message (" + response.status + "). " + detail.slice(0, 300));
+  if (response.ok) {
+    const data = await response.json().catch(() => ({}));
+    return { ok: true, from, id: data && data.id };
   }
 
-  return response.json().catch(() => ({}));
+  const detail = await response.text().catch(() => "");
+  return { ok: false, from, status: response.status, detail: detail.slice(0, 400) };
+}
+
+/* A provider rejection caused by the sending DOMAIN, not by the message.
+   This is exactly the failure that took the Triumph forms down: the custom
+   domain was added to Resend but its DNS records were never verified. */
+function isSenderDomainProblem(result) {
+  if (!result || result.ok) return false;
+  if (result.status !== 403 && result.status !== 422) return false;
+  return /not verified|verify (your )?domain|domain is not|resend\.com\/domains/i.test(result.detail || "");
+}
+
+async function sendEmail(fields, notes) {
+  if (!RESEND_API_KEY) {
+    const err = new Error("RESEND_API_KEY is not set in the hosting environment.");
+    err.code = "not_configured";
+    throw err;
+  }
+
+  const primaryFrom = MAIL_FROM || FALLBACK_FROM;
+  let result = await postToResend(primaryFrom, fields, notes);
+
+  /* Sending domain broken -> retry once from the provider's shared sender so
+     the submission still reaches the Triumph inbox. */
+  if (isSenderDomainProblem(result) && primaryFrom !== FALLBACK_FROM) {
+    console.error(
+      "[inquiry] sending domain rejected by provider; retrying from fallback sender.",
+      "| from:", primaryFrom,
+      "| status:", result.status,
+      "| detail:", result.detail
+    );
+    const retry = await postToResend(FALLBACK_FROM, fields, notes);
+    if (retry.ok) {
+      console.warn("[inquiry] delivered via FALLBACK sender. Verify the sending domain at resend.com/domains.");
+      return { ...retry, usedFallbackSender: true };
+    }
+    result = retry;
+  }
+
+  if (!result.ok) {
+    const err = new Error(
+      "Email provider rejected the message (" + result.status + "): " + result.detail
+    );
+    err.code = "provider_rejected";
+    throw err;
+  }
+
+  return result;
 }
 
 /* --------------------------------------------------------------------------
@@ -267,8 +371,9 @@ module.exports = async function handler(req, res) {
 
   const errors = validate(fields);
 
-  /* Silently accept obvious bot traffic so scripts do not learn the rules. */
-  if (errors[0] === "spam" || errors[0] === "too fast") {
+  /* Silently accept honeypot traffic so scripts do not learn the rules.
+     Only the honeypot gets this treatment — a real person is never dropped. */
+  if (errors[0] === "spam") {
     if (encoded) { res.writeHead(303, { Location: "/thank-you" }); return res.end(); }
     return res.status(200).json({ delivered: true });
   }
@@ -279,13 +384,21 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    await sendEmail(fields);
+    const sent = await sendEmail(fields, submissionNotes(fields));
     if (encoded) { res.writeHead(303, { Location: "/thank-you" }); return res.end(); }
-    return res.status(200).json({ delivered: true });
+    return res.status(200).json({ delivered: true, fallbackSender: !!sent.usedFallbackSender });
   } catch (err) {
-    console.error("[inquiry] delivery failed:", err.message, "| source:", fields.source);
+    /* Full detail goes to the server log only. The browser gets a safe,
+       useful sentence — never a provider message, key name or stack trace. */
+    console.error(
+      "[inquiry] DELIVERY FAILED |", err.code || "error", "|", err.message,
+      "| source:", fields.source, "| player:", clean(fields.player_name)
+    );
     if (encoded) { res.writeHead(303, { Location: "/thank-you?status=error" }); return res.end(); }
-    return res.status(502).json({ delivered: false, error: err.message });
+    return res.status(502).json({
+      delivered: false,
+      error: "We couldn't deliver your submission right now."
+    });
   }
 };
 
