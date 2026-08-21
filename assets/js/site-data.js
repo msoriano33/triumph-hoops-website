@@ -158,7 +158,7 @@ window.TRIUMPH_DATA = {
 
     /* --- TRYOUT REGISTRATION ------------------------------------------- */
     tryoutRegistration: {
-      /* "scheduled" = not open yet; the page shows "Opens Monday, September 8"
+      /* "scheduled" = not open yet; the page shows "Opens Tuesday, September 8"
                        and the form below collects the interest list.
          "open"      = registration is live; the page flips to
                        "Register for tryouts" and the form submits as a

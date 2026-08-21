@@ -294,7 +294,7 @@
       cta: "Join the Junior Wolves list",
       navCta: "Junior Wolves list",
       heading: "Tryout registration<br>opens September 8.",
-      lead: "Registration goes live Monday, September 8. Add your player to the Junior Wolves " +
+      lead: "Registration goes live Tuesday, September 8. Add your player to the Junior Wolves " +
             "list now and we'll email you the moment it opens — along with Fall clinic " +
             "details. Joining the list does not reserve a roster spot.",
       submit: "Join the Junior Wolves list",
