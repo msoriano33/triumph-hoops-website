@@ -21,7 +21,7 @@ an obvious placeholder or a "To be announced" chip.
 | 6 | **Official Niles West colors** | `styles.css` → `--nw-red`, `--nw-black`, `--nw-white` | `--nw-red` is a temporary crimson. Everything Junior Wolves reads from these three tokens. |
 | 7 | **Final Junior Wolves logo** | `site-data.js` → `juniorWolvesFall.logo` | Currently an outlined "NW" mark. Drop the file in `assets/img/` and set the value. |
 | 7a | **Virtual Town Hall meeting link** | `site-data.js` → `juniorWolvesFall.townHall.url` | The Sept 2 card shows a "Link coming soon" chip until this is filled in. |
-| 7b | **Tryout registration go-live** | `site-data.js` → `juniorWolvesFall.tryoutRegistration.status` | Set to `"open"` on Monday, September 8. Until then the page collects a Junior Wolves list. |
+| 7b | **Tryout registration go-live** | `site-data.js` → `juniorWolvesFall.tryoutRegistration.status` | Set to `"open"` on Tuesday, September 8. Until then the page collects a Junior Wolves list. |
 | 7c | **Real Niles West basketball photography** | `site-data.js` → `juniorWolvesFall.heroImage` | The campaign hero runs type-only until a real photo is supplied. The flyer photo is the obvious candidate. |
 | 7d | **Fall clinic cost / signup requirement** | not yet stated anywhere | The page currently says clinics are open sessions and that details are emailed. If clinics have a fee or require signup, that needs to be confirmed and added. |
 | 8 | **Exact grade-level tryout dates + times** | `site-data.js` → `juniorWolvesSeason.tryoutDates` | Page says "Tryouts begin the week of October 26 — exact grade-level dates and times will be announced." |
