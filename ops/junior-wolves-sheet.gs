@@ -547,16 +547,40 @@ function renderTownHall_(token) {
 
 var TOWNHALL_SUBJECT = 'Junior Wolves Town Hall + Meet the Coaches — Wednesday 6:30 PM';
 
+var TEST_SOURCE = 'TEST - QA';
+var TEST_EMAIL = 'triumphhoopsacademy@gmail.com';
+
+/* Gives the QA test its own real row, so the three RSVP buttons in the test
+   email genuinely work end to end and can be tapped on a phone. The row is
+   tagged TEST - QA and is skipped by the live send. */
+function ensureTestRow_() {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(RSVP_SHEET);
+  var last = sheet.getLastRow();
+  if (last > 1) {
+    var vals = sheet.getRange(2, 1, last - 1, 5).getValues();
+    for (var i = 0; i < vals.length; i++) {
+      if (vals[i][4] === TEST_SOURCE) return vals[i][0];
+    }
+  }
+  var token = Utilities.getUuid().replace(/-/g, '').substring(0, 16);
+  sheet.appendRow([token, 'Triumph QA', 'QA test row', TEST_EMAIL, TEST_SOURCE,
+                   'No Response', '', '', 'Test row for Town Hall email QA. Not a real family.']);
+  return token;
+}
+
 function sendTownHallTest() {
-  var html = renderTownHall_('0000000000000000');
+  var token = ensureTestRow_();
   MailApp.sendEmail({
-    to: 'triumphhoopsacademy@gmail.com',
+    to: TEST_EMAIL,
     subject: '[TEST] ' + TOWNHALL_SUBJECT,
-    htmlBody: html,
+    htmlBody: renderTownHall_(token),
     name: 'Niles West Junior Wolves',
-    replyTo: 'triumphhoopsacademy@gmail.com'
+    replyTo: TEST_EMAIL
   });
-  return 'test email sent to triumphhoopsacademy@gmail.com';
+  Logger.log('TEST EMAIL SENT to ' + TEST_EMAIL);
+  Logger.log('test RSVP token: ' + token + '  (all three buttons are live)');
+  Logger.log('remaining daily quota: ' + MailApp.getRemainingDailyQuota());
+  return 'test sent, token ' + token;
 }
 
 function sendTownHallLive() {
@@ -569,6 +593,7 @@ function sendTownHallLive() {
 
   for (var i = 0; i < rows.length; i++) {
     var token = rows[i][0], email = rows[i][3], already = rows[i][7];
+    if (rows[i][4] === TEST_SOURCE) { skipped++; continue; }   /* QA row, never a real family */
     if (already) { skipped++; continue; }            /* never send twice */
     if (!validEmail_(normEmail_(email))) { skipped++; continue; }
     if (sent >= quota - 2) break;                    /* stay inside the daily quota */
