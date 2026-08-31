@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>{{SUBJECT}}</title>
+<style>
+  /* JUNIOR WOLVES EMAIL SYSTEM v1.0
+     Progressive enhancement only. Every rule here has an inline fallback,
+     so the email still works in clients that strip <style> (Gmail app, older Outlook). */
+  body { margin:0 !important; padding:0 !important; width:100% !important; }
+  table { border-collapse:collapse !important; }
+  img { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+  a { text-decoration:none; }
+  .jw-display { font-family: 'Arial Black','Arial Bold',Arial,Helvetica,sans-serif; }
+  @media screen and (max-width:620px) {
+    .jw-wrap { width:100% !important; }
+    .jw-pad { padding-left:22px !important; padding-right:22px !important; }
+    .jw-h1 { font-size:30px !important; line-height:34px !important; }
+    .jw-date { font-size:26px !important; line-height:30px !important; }
+    .jw-btn a { display:block !important; width:auto !important; }
+    .jw-stack { display:block !important; width:100% !important; }
+    .jw-gap { height:12px !important; line-height:12px !important; font-size:12px !important; }
+  }
+  /* Clients that force light mode: keep our own colours */
+  @media (prefers-color-scheme: light) {
+    .jw-shell { background:#0b0b0c !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#000000;">
+
+<!-- Preheader: shown in the inbox preview, hidden in the body -->
+<div style="display:none;font-size:1px;color:#000000;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+  {{PREHEADER}}
+  &#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="background:#000000;">
+<tr><td align="center" style="padding:24px 12px;">
+
+  <table role="presentation" class="jw-wrap jw-shell" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#0b0b0c" style="width:600px;max-width:600px;background:#0b0b0c;">
+
+    <!-- ============ HEADER ============ -->
+    <tr><td class="jw-pad" align="left" bgcolor="#0b0b0c" style="padding:28px 36px 0 36px;background:#0b0b0c;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:16px;letter-spacing:2px;color:#ffffff;font-weight:bold;text-transform:uppercase;">
+            Niles West Junior Wolves
+          </td>
+        </tr>
+        <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:1.6px;color:#a1a1aa;text-transform:uppercase;padding-top:5px;">
+            Powered by Triumph Hoops Academy
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <!-- red rule -->
+    <tr><td class="jw-pad" style="padding:18px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="3" bgcolor="#c8102e" style="height:3px;line-height:3px;font-size:3px;background:#c8102e;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <!-- ============ COMMUNICATION TYPE ============ -->
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:14px;letter-spacing:2.4px;color:#ff3b52;font-weight:bold;text-transform:uppercase;">
+      {{ISSUE_LABEL}}
+    </td></tr>
+
+    <!-- ============ HEADLINE ============ -->
+    <tr><td class="jw-pad" align="left" style="padding:10px 36px 0 36px;">
+      <div class="jw-display jw-h1" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:38px;line-height:40px;color:#ffffff;text-transform:uppercase;letter-spacing:-0.5px;margin:0;">
+        {{HEADLINE}}
+      </div>
+    </td></tr>
+
+    <!-- ============ KEY INFORMATION BLOCK ============ -->
+    <tr><td class="jw-pad" style="padding:24px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#17171a" style="background:#17171a;">
+        <tr><td height="3" bgcolor="#c8102e" style="height:3px;line-height:3px;font-size:3px;background:#c8102e;">&nbsp;</td></tr>
+        <tr><td style="padding:20px 22px 22px 22px;">
+          <div class="jw-display jw-date" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:29px;line-height:32px;color:#ffffff;text-transform:uppercase;letter-spacing:-0.3px;">
+            {{EVENT_DATE}}
+          </div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:19px;line-height:24px;color:#ffffff;font-weight:bold;padding-top:6px;">
+            {{EVENT_TIME}}
+          </div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;letter-spacing:1.6px;color:#ff3b52;font-weight:bold;text-transform:uppercase;padding-top:12px;">
+            {{EVENT_FORMAT}}
+          </div>
+          {{EVENT_DETAIL_ROWS}}
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <!-- ============ MAIN MESSAGE ============ -->
+    <tr><td class="jw-pad" align="left" style="padding:26px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:25px;color:#e4e4e7;">
+      {{BODY}}
+    </td></tr>
+
+    <!-- ============ PRIMARY ACTION ============ -->
+    {{ACTION_BLOCK}}
+
+    <!-- ============ SECONDARY INFORMATION ============ -->
+    {{SECONDARY_BLOCK}}
+
+    <!-- ============ FOOTER ============ -->
+    <tr><td class="jw-pad" style="padding:34px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="1" bgcolor="#2a2a2f" style="height:1px;line-height:1px;font-size:1px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 34px 36px;">
+      <div class="jw-display" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:15px;line-height:20px;color:#ffffff;text-transform:uppercase;letter-spacing:0.5px;">
+        Earn your place in the pack.
+      </div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;letter-spacing:2px;color:#ff3b52;font-weight:bold;text-transform:uppercase;padding-top:8px;">
+        The Wolf Way
+      </div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;color:#a1a1aa;padding-top:16px;">
+        Niles West Junior Wolves &middot; Powered by Triumph Hoops Academy<br>
+        <a href="mailto:triumphhoopsacademy@gmail.com" style="color:#a1a1aa;text-decoration:underline;">triumphhoopsacademy@gmail.com</a><br>
+        <a href="https://triumphhoopsacademy.com/junior-wolves" style="color:#a1a1aa;text-decoration:underline;">triumphhoopsacademy.com/junior-wolves</a>
+      </div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;color:#67676f;padding-top:16px;">
+        {{FOOTER_NOTE}}
+      </div>
+    </td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+</body>
+</html>

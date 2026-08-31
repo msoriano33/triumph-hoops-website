@@ -230,11 +230,357 @@ function doPost(e) {
   }
 }
 
-function doGet() {
-  return json({ ok: true, service: 'Junior Wolves registration intake' });
-}
-
 function json(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ==========================================================================
+   JUNIOR WOLVES — TOWN HALL AUDIENCE + RSVP
+   --------------------------------------------------------------------------
+   Adds to the existing registration script. Nothing below touches
+   MASTER REGISTRATIONS except to READ parent contacts from it.
+
+     buildTownHallAudience()  — build/refresh the TOWN HALL RSVP tab
+     doGet(e)                 — one-tap RSVP capture (extended below)
+     townHallSummary()        — head-count totals in the log
+     sendTownHallTest()       — send ONE email to the Triumph inbox
+     sendTownHallLive()       — send to every unsent contact (guarded)
+
+   Privacy: the RSVP link carries a random 16-char token only. No email
+   address, name or player name ever appears in a URL.
+   ========================================================================== */
+
+var RSVP_SHEET = 'TOWN HALL RSVP';
+var EMAIL_TEMPLATE_URL =
+  'https://raw.githubusercontent.com/msoriano33/triumph-hoops-website/main/ops/townhall-email.html';
+
+/* Historical Niles West feeder-feedback contacts (2025-26). These are LEADS,
+   not registrations, and are deliberately kept out of MASTER REGISTRATIONS. */
+var HISTORICAL_FEEDER = [
+'ahmedst23@gmail.com','amandaruthsharon@gmail.com','anthonymoodyii@gmail.com','basheer.hassan@gmail.com',
+'bundocjehramie@yahoo.com','carol.dominguez198502@gmail.com','cmoy33@gmail.com','cmsanti05@gmail.com',
+'cynthiaalexander48@gmail.com','dahliatamras@gmail.com','danieljurban@gmail.com','dbrown712@gmail.com',
+'desiree.jara@gmail.com','didimaric@yahoo.com','doctorsufa@gmail.com','ejchan@gmail.com',
+'elaadi17@gmail.com','gabadilla@hotmail.com','jas.reavy@gmail.com','joelarzu@gmail.com',
+'kimdurband@gmail.com','kimkre8s@gmail.com','kjensen1313@hotmail.com','konstantosp@yahoo.com',
+'korey.pressburger@gmail.com','kristynbair@gmail.com','laurapriban@gmail.com','leenahamdi909@gmail.com',
+'maya.vujosevich@gmail.com','micsne@d219.org','mlbybee@gmail.com','msroulam@gmail.com',
+'notisotiropoulos46@gmail.com','orasa1@gmail.com','p.cullen@sbcglobal.net','parwani0830@yahoo.com',
+'petesiatos@gmail.com','pramasujita@gmail.com','rsuleiman831@gmail.com','sibrahim23@yahoo.com',
+'sucrets.home@gmail.com','suzannembartels@gmail.com','syazdani8@gmail.com','taniabella1@aol.com',
+'the.alamaniacs@gmail.com','tuyen.chicagocre@gmail.com','venus.delarmente@gmail.com',
+'vm.michelle@gmail.com','youngheechos@gmail.com'
+];
+
+var RSVP_HEADERS = ['Token','Parent / Family','Player','Email','Contact Source',
+                    'RSVP Status','RSVP Timestamp','Email Sent At','Notes'];
+
+var RSVP_LABEL = { in: 'In Person', vr: 'Virtual', no: "Can't Attend" };
+
+function normEmail_(v) { return String(v == null ? '' : v).trim().toLowerCase(); }
+function validEmail_(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e); }
+
+/* ---------------------------------------------------------------------------
+   Build the audience. Safe to re-run: existing rows keep their token and any
+   RSVP already recorded; only genuinely new contacts are appended.
+   --------------------------------------------------------------------------- */
+function buildTownHallAudience() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(RSVP_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(RSVP_SHEET);
+    sheet.getRange(1, 1, 1, RSVP_HEADERS.length).setValues([RSVP_HEADERS]);
+  }
+
+  /* --- existing rows, so a rebuild never loses an RSVP --- */
+  var existing = {};
+  var last = sheet.getLastRow();
+  if (last > 1) {
+    sheet.getRange(2, 1, last - 1, RSVP_HEADERS.length).getValues().forEach(function (r, i) {
+      if (r[3]) existing[normEmail_(r[3])] = { row: i + 2, token: r[0] };
+    });
+  }
+
+  /* --- source A: current Junior Wolves contacts from MASTER REGISTRATIONS --- */
+  var reg = ss.getSheetByName(SHEET_NAME);
+  var current = {};
+  var regLast = reg.getLastRow();
+  if (regLast > 1) {
+    reg.getRange(2, 1, regLast - 1, 16).getValues().forEach(function (r) {
+      var email = normEmail_(r[9]);          // J Parent Email
+      var status = String(r[15] || '');      // P Registration Status
+      if (!validEmail_(email)) return;
+      if (/cancelled|duplicate|withdrawn/i.test(status)) return;   // excludes the QA test row
+      if (!current[email]) current[email] = { parent: r[8] || '', players: [] };
+      if (r[5]) current[email].players.push(r[5]);                 // F Player Full Name
+    });
+  }
+
+  /* --- source B: historical feeder list, normalised + deduped --- */
+  var historical = {};
+  HISTORICAL_FEEDER.forEach(function (e) {
+    var n = normEmail_(e);
+    if (validEmail_(n)) historical[n] = true;
+  });
+
+  /* --- merge: email is the deduplication key, one row per family --- */
+  var all = {};
+  Object.keys(current).forEach(function (e) {
+    all[e] = { email: e, parent: current[e].parent,
+               player: current[e].players.join(', '), source: 'CURRENT JUNIOR WOLVES' };
+  });
+  Object.keys(historical).forEach(function (e) {
+    if (all[e]) { all[e].source = 'BOTH'; }
+    else { all[e] = { email: e, parent: '', player: '', source: 'HISTORICAL FEEDER FEEDBACK' }; }
+  });
+
+  var emails = Object.keys(all).sort();
+  var appended = 0, updated = 0;
+
+  emails.forEach(function (e) {
+    var rec = all[e];
+    if (existing[e]) {
+      /* refresh name/player/source only — never touch token or RSVP columns */
+      var row = existing[e].row;
+      sheet.getRange(row, 2, 1, 4).setValues([[rec.parent, rec.player, rec.email, rec.source]]);
+      updated++;
+    } else {
+      var token = Utilities.getUuid().replace(/-/g, '').substring(0, 16);
+      sheet.appendRow([token, rec.parent, rec.player, rec.email, rec.source,
+                       'No Response', '', '', '']);
+      appended++;
+    }
+  });
+
+  formatRsvpSheet_(sheet);
+
+  var counts = countSources_(sheet);
+  Logger.log('TOWN HALL AUDIENCE BUILT');
+  Logger.log('  appended new contacts : ' + appended);
+  Logger.log('  refreshed existing    : ' + updated);
+  Logger.log('  ---------------------------------');
+  Logger.log('  CURRENT JUNIOR WOLVES : ' + counts['CURRENT JUNIOR WOLVES']);
+  Logger.log('  HISTORICAL FEEDER     : ' + counts['HISTORICAL FEEDER FEEDBACK']);
+  Logger.log('  BOTH (in both lists)  : ' + counts['BOTH']);
+  Logger.log('  TOTAL UNIQUE FAMILIES : ' + (sheet.getLastRow() - 1));
+  return 'audience built: ' + (sheet.getLastRow() - 1) + ' unique recipients';
+}
+
+function countSources_(sheet) {
+  var c = { 'CURRENT JUNIOR WOLVES': 0, 'HISTORICAL FEEDER FEEDBACK': 0, 'BOTH': 0 };
+  var last = sheet.getLastRow();
+  if (last < 2) return c;
+  sheet.getRange(2, 5, last - 1, 1).getValues().forEach(function (r) {
+    if (c[r[0]] !== undefined) c[r[0]]++;
+  });
+  return c;
+}
+
+function formatRsvpSheet_(sheet) {
+  var header = sheet.getRange(1, 1, 1, RSVP_HEADERS.length);
+  header.setValues([RSVP_HEADERS]).setFontWeight('bold').setFontSize(10)
+        .setBackground('#0b0b0c').setFontColor('#ffffff').setVerticalAlignment('middle').setWrap(true);
+  sheet.setRowHeight(1, 42);
+  sheet.setFrozenRows(1);
+  var f = sheet.getFilter(); if (f) f.remove();
+  sheet.getRange(1, 1, Math.max(sheet.getMaxRows(), 2), RSVP_HEADERS.length).createFilter();
+
+  var rows = Math.max(sheet.getMaxRows() - 1, 1);
+  var rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['No Response', 'In Person', 'Virtual', "Can't Attend"], true)
+    .setAllowInvalid(false).build();
+  sheet.getRange(2, 6, rows, 1).setDataValidation(rule);
+
+  var w = { 1: 150, 2: 190, 3: 200, 4: 240, 5: 200, 6: 130, 7: 165, 8: 165, 9: 220 };
+  Object.keys(w).forEach(function (c) { sheet.setColumnWidth(Number(c), w[c]); });
+  sheet.getRange(2, 7, rows, 2).setNumberFormat('yyyy-mm-dd hh:mm');
+
+  /* Live head-count panel — always current, no manual counting */
+  var n = 'K';
+  sheet.getRange('K1').setValue('HEAD COUNT').setFontWeight('bold')
+       .setBackground('#0b0b0c').setFontColor('#ffffff');
+  var panel = [
+    ['Total invited',   '=COUNTA(D2:D)'],
+    ['In person',       '=COUNTIF(F2:F,"In Person")'],
+    ['Virtual',         '=COUNTIF(F2:F,"Virtual")'],
+    ["Can't attend",    '=COUNTIF(F2:F,"Can\'t Attend")'],
+    ['No response',     '=COUNTIF(F2:F,"No Response")'],
+    ['Responded',       '=COUNTA(D2:D)-COUNTIF(F2:F,"No Response")'],
+    ['Emails sent',     '=COUNTA(H2:H)']
+  ];
+  sheet.getRange(2, 11, panel.length, 2).setValues(panel);
+  sheet.getRange(2, 11, panel.length, 1).setFontWeight('bold');
+  sheet.setColumnWidth(11, 150); sheet.setColumnWidth(12, 90);
+}
+
+function townHallSummary() {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(RSVP_SHEET);
+  var last = sheet.getLastRow();
+  var vals = last > 1 ? sheet.getRange(2, 1, last - 1, 9).getValues() : [];
+  var t = { 'In Person': 0, 'Virtual': 0, "Can't Attend": 0, 'No Response': 0 };
+  var sent = 0;
+  vals.forEach(function (r) { if (t[r[5]] !== undefined) t[r[5]]++; if (r[7]) sent++; });
+  Logger.log('TOTAL INVITED : ' + vals.length);
+  Logger.log('EMAILS SENT   : ' + sent);
+  Logger.log('IN PERSON     : ' + t['In Person']);
+  Logger.log('VIRTUAL       : ' + t['Virtual']);
+  Logger.log("CAN'T ATTEND  : " + t["Can't Attend"]);
+  Logger.log('NO RESPONSE   : ' + t['No Response']);
+  return t;
+}
+
+/* ---------------------------------------------------------------------------
+   RSVP capture. Idempotent by design: the token identifies exactly one row,
+   and the handler only ever UPDATES that row. Repeated taps — or a mail client
+   pre-fetching the link — can never create a second record.
+   --------------------------------------------------------------------------- */
+function recordRsvp_(token, action) {
+  var label = RSVP_LABEL[action];
+  if (!label || !/^[0-9a-f]{16}$/.test(String(token))) return null;
+
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(15000); } catch (e) { return null; }
+  try {
+    var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(RSVP_SHEET);
+    var last = sheet.getLastRow();
+    if (last < 2) return null;
+    var tokens = sheet.getRange(2, 1, last - 1, 1).getValues();
+    for (var i = 0; i < tokens.length; i++) {
+      if (String(tokens[i][0]) === String(token)) {
+        var row = i + 2;
+        var previous = sheet.getRange(row, 6).getValue();
+        sheet.getRange(row, 6).setValue(label);
+        sheet.getRange(row, 7).setValue(new Date());
+        return { label: label, changed: previous !== label && previous !== 'No Response' };
+      }
+    }
+    return null;
+  } finally { lock.releaseLock(); }
+}
+
+function rsvpPage_(title, message, tone) {
+  var accent = tone === 'error' ? '#a1a1aa' : '#ff3b52';
+  var html =
+  '<!doctype html><html><head><meta charset="utf-8">' +
+  '<meta name="viewport" content="width=device-width,initial-scale=1"><title>' + title + '</title></head>' +
+  '<body style="margin:0;background:#0b0b0c;font-family:Arial,Helvetica,sans-serif;">' +
+  '<div style="max-width:520px;margin:0 auto;padding:64px 26px;">' +
+  '<div style="font-size:12px;letter-spacing:2.4px;text-transform:uppercase;color:#ffffff;font-weight:bold;">' +
+  'Niles West Junior Wolves</div>' +
+  '<div style="height:3px;background:#c8102e;margin:18px 0 26px;"></div>' +
+  '<div style="font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:' + accent +
+  ';font-weight:bold;">Town Hall</div>' +
+  '<h1 style="font-family:\'Arial Black\',Arial,sans-serif;font-size:30px;line-height:34px;color:#fff;' +
+  'text-transform:uppercase;margin:10px 0 16px;">' + title + '</h1>' +
+  '<p style="font-size:16px;line-height:25px;color:#e4e4e7;margin:0 0 26px;">' + message + '</p>' +
+  '<p style="font-size:14px;line-height:22px;color:#a1a1aa;margin:0;">Wednesday, September 2 &middot; 6:30 PM<br>' +
+  'Questions? <a href="mailto:triumphhoopsacademy@gmail.com" style="color:#ff3b52;">triumphhoopsacademy@gmail.com</a></p>' +
+  '<div style="height:1px;background:#2a2a2f;margin:34px 0 18px;"></div>' +
+  '<div style="font-family:\'Arial Black\',Arial,sans-serif;font-size:14px;color:#fff;text-transform:uppercase;">' +
+  'Earn your place in the pack.</div>' +
+  '<div style="font-size:11px;letter-spacing:2px;color:#ff3b52;font-weight:bold;text-transform:uppercase;' +
+  'padding-top:6px;">The Wolf Way</div>' +
+  '</div></body></html>';
+  return HtmlService.createHtmlOutput(html)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setTitle('Junior Wolves Town Hall RSVP');
+}
+
+function doGet(e) {
+  var p = (e && e.parameter) || {};
+  if (p.r && p.a) {
+    var res = recordRsvp_(p.r, p.a);
+    if (!res) {
+      return rsvpPage_('Link not recognised',
+        "We couldn't match that RSVP link. Reply to this email and we'll add you to the list by hand.",
+        'error');
+    }
+    if (res.label === 'In Person') {
+      return rsvpPage_("You're in.",
+        "We've got you down for <strong style=\"color:#fff\">attending in person</strong>. " +
+        "We'll send the room details before Wednesday.");
+    }
+    if (res.label === 'Virtual') {
+      return rsvpPage_("You're in.",
+        "We've got you down for <strong style=\"color:#fff\">joining online</strong>. " +
+        "We'll email the meeting link before Wednesday.");
+    }
+    return rsvpPage_('Thanks for letting us know.',
+      "You're marked as <strong style=\"color:#fff\">unable to attend</strong>. " +
+      "We'll follow up afterwards with everything covered, so you won't miss anything.");
+  }
+  return json({ ok: true, service: 'Junior Wolves registration intake' });
+}
+
+/* ---------------------------------------------------------------------------
+   Sending. Individual sends only — never CC or BCC, so no recipient can see
+   another family's address, and each link is personal to one row.
+   --------------------------------------------------------------------------- */
+function getEmailHtml_() {
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get('townhall_html');
+  if (cached) return cached;
+  var html = UrlFetchApp.fetch(EMAIL_TEMPLATE_URL + '?cb=' + Date.now()).getContentText();
+  cache.put('townhall_html', html, 21600);
+  return html;
+}
+
+function renderTownHall_(token) {
+  var fall = { venue: '', virtual: '' };
+  var props = PropertiesService.getScriptProperties();
+  var venue = props.getProperty('TOWNHALL_VENUE') || '';
+  var virtual = props.getProperty('TOWNHALL_VIRTUAL_URL') || '';
+  if (!venue || !virtual) {
+    throw new Error('Town hall venue and/or virtual link not set. ' +
+      'Set TOWNHALL_VENUE and TOWNHALL_VIRTUAL_URL in Script Properties before sending.');
+  }
+  var virtualHtml = '<a href="' + virtual + '" style="color:#ff3b52;">Join the meeting online</a>';
+  return getEmailHtml_()
+    .replace(/\{\{BASE\}\}/g, ScriptApp.getService().getUrl())
+    .replace(/\{\{TOKEN\}\}/g, token)
+    .replace(/\{\{VENUE\}\}/g, venue)
+    .replace(/\{\{VIRTUAL\}\}/g, virtualHtml);
+}
+
+var TOWNHALL_SUBJECT = 'Junior Wolves Town Hall + Meet the Coaches — Wednesday 6:30 PM';
+
+function sendTownHallTest() {
+  var html = renderTownHall_('0000000000000000');
+  MailApp.sendEmail({
+    to: 'triumphhoopsacademy@gmail.com',
+    subject: '[TEST] ' + TOWNHALL_SUBJECT,
+    htmlBody: html,
+    name: 'Niles West Junior Wolves',
+    replyTo: 'triumphhoopsacademy@gmail.com'
+  });
+  return 'test email sent to triumphhoopsacademy@gmail.com';
+}
+
+function sendTownHallLive() {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(RSVP_SHEET);
+  var last = sheet.getLastRow();
+  if (last < 2) return 'no recipients';
+  var rows = sheet.getRange(2, 1, last - 1, 9).getValues();
+  var quota = MailApp.getRemainingDailyQuota();
+  var sent = 0, skipped = 0;
+
+  for (var i = 0; i < rows.length; i++) {
+    var token = rows[i][0], email = rows[i][3], already = rows[i][7];
+    if (already) { skipped++; continue; }            /* never send twice */
+    if (!validEmail_(normEmail_(email))) { skipped++; continue; }
+    if (sent >= quota - 2) break;                    /* stay inside the daily quota */
+    MailApp.sendEmail({
+      to: email,
+      subject: TOWNHALL_SUBJECT,
+      htmlBody: renderTownHall_(token),
+      name: 'Niles West Junior Wolves',
+      replyTo: 'triumphhoopsacademy@gmail.com'
+    });
+    sheet.getRange(i + 2, 8).setValue(new Date());   /* stamp immediately */
+    sent++;
+  }
+  Logger.log('sent: ' + sent + ' | skipped (already sent / invalid): ' + skipped +
+             ' | remaining quota: ' + MailApp.getRemainingDailyQuota());
+  return 'sent ' + sent;
 }
