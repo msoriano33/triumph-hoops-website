@@ -348,7 +348,7 @@
     if (th && thUrl) {
       th.innerHTML =
         '<a class="btn btn--primary btn--block" href="' + esc(thUrl) +
-        '" target="_blank" rel="noopener">Join the virtual town hall</a>' +
+        '" target="_blank" rel="noopener">Join the town hall online</a>' +
         (fall.townHall.note ? '<p class="small muted">' + esc(fall.townHall.note) + "</p>" : "");
     }
 
