@@ -19,7 +19,7 @@ def row(label, value):
       + value + '</td></tr></table>')
 
 # ---- Location + virtual link: NOT INVENTED. Filled from site-data at send time. ----
-DETAIL = row("Where — in person", "{{VENUE}}") + row("Where — online", "{{VIRTUAL}}")
+DETAIL = row("In person", "{{VENUE}}") + row("Or join online", "{{VIRTUAL}}")
 
 BODY = """
 <p style="margin:0 0 16px 0;">Junior Wolves is being rebuilt as a true developmental feeder program for
@@ -84,7 +84,7 @@ SECONDARY = ('<tr><td class="jw-pad" style="padding:26px 36px 0 36px;">'
   '<div class="jw-display" style="font-family:\'Arial Black\',\'Arial Bold\',Arial,Helvetica,sans-serif;'
   'font-size:20px;line-height:24px;color:#ffffff;text-transform:uppercase;padding-top:8px;">Village Inn</div>'
   '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#e4e4e7;padding-top:10px;">'
-  'We&rsquo;re grateful to Village Inn &mdash; a Skokie institution &mdash; for supporting the Junior Wolves '
+  'We&rsquo;re grateful to Village Inn, a longtime Skokie favorite, for supporting the Junior Wolves '
   'Town Hall and providing pizza for families joining us in person. Please RSVP so we can give them an '
   'accurate head count.</div>'
   '</td></tr></table></td></tr>')
