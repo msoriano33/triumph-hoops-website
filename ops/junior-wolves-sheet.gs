@@ -252,6 +252,11 @@ function json(obj) {
    ========================================================================== */
 
 var RSVP_SHEET = 'TOWN HALL RSVP';
+
+/* Town Hall details. Not secrets — these go out to families in the email,
+   so they live in code where they are version-controlled and reviewable. */
+var TOWNHALL_VENUE = 'South Lobby<br>Niles West High School<br>5701 Oakton St, Skokie, IL 60077';
+var TOWNHALL_VIRTUAL_URL = 'https://www.canvaqr.com/RGQ6_f0uss';
 var EMAIL_TEMPLATE_URL =
   'https://raw.githubusercontent.com/msoriano33/triumph-hoops-website/main/ops/townhall-email.html';
 
@@ -527,19 +532,16 @@ function getEmailHtml_() {
 }
 
 function renderTownHall_(token) {
-  var fall = { venue: '', virtual: '' };
-  var props = PropertiesService.getScriptProperties();
-  var venue = props.getProperty('TOWNHALL_VENUE') || '';
-  var virtual = props.getProperty('TOWNHALL_VIRTUAL_URL') || '';
-  if (!venue || !virtual) {
-    throw new Error('Town hall venue and/or virtual link not set. ' +
-      'Set TOWNHALL_VENUE and TOWNHALL_VIRTUAL_URL in Script Properties before sending.');
+  if (!TOWNHALL_VENUE || !TOWNHALL_VIRTUAL_URL) {
+    throw new Error('Town hall venue and/or virtual link not set.');
   }
-  var virtualHtml = '<a href="' + virtual + '" style="color:#ff3b52;">Join the meeting online</a>';
+  var virtualHtml =
+    '<a href="' + TOWNHALL_VIRTUAL_URL + '" style="color:#ff3b52;text-decoration:underline;">' +
+    'Join the Town Hall online</a>';
   return getEmailHtml_()
     .replace(/\{\{BASE\}\}/g, ScriptApp.getService().getUrl())
     .replace(/\{\{TOKEN\}\}/g, token)
-    .replace(/\{\{VENUE\}\}/g, venue)
+    .replace(/\{\{VENUE\}\}/g, TOWNHALL_VENUE)
     .replace(/\{\{VIRTUAL\}\}/g, virtualHtml);
 }
 
