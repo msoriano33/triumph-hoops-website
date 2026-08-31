@@ -51,7 +51,9 @@ const crypto = require("crypto");
    -------------------------------------------------------------------------- */
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
-const SHEET_TIMEOUT_MS = 5000;
+/* 7s: a cold start on the Apps Script side right after a deployment can
+   exceed 5s. Still leaves headroom inside the platform request limit. */
+const SHEET_TIMEOUT_MS = 7000;
 
 /* Only Junior Wolves submissions go to the registration database. Every other
    Triumph form keeps its existing email-only behaviour. */
