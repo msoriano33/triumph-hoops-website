@@ -51,9 +51,14 @@ const crypto = require("crypto");
    -------------------------------------------------------------------------- */
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
-/* 7s: a cold start on the Apps Script side right after a deployment can
-   exceed 5s. Still leaves headroom inside the platform request limit. */
-const SHEET_TIMEOUT_MS = 7000;
+/* 4.5s: leaves room for a second, shorter confirmation attempt below while
+   staying well inside the platform request limit. A slow Apps Script run is no
+   longer reported as a failure, so a tight first timeout is now safe. */
+const SHEET_TIMEOUT_MS = 4500;
+/* Second, shorter attempt used ONLY to confirm a write we already timed out on.
+   doPost is idempotent on submissionId (it returns duplicate:true instead of
+   appending), so this can never create a second row. */
+const SHEET_CONFIRM_MS = 3000;
 
 /* Only Junior Wolves submissions go to the registration database. Every other
    Triumph form keeps its existing email-only behaviour. */
@@ -329,8 +334,26 @@ async function logToSheet(fields, submissionId) {
     page: clean(fields.page, 300)
   };
 
+  const first = await postToSheetOnce(payload, SHEET_TIMEOUT_MS);
+  if (first.logged || !first.timedOut) return first;
+
+  /* We timed out. IMPORTANT: aborting cancels OUR wait, not the Apps Script run.
+     doPost takes a script lock with waitLock(20000), so under concurrent
+     submissions it can legitimately take longer than our client timeout and
+     still append the row. Reporting "not logged" here produced false negatives
+     that told staff to re-enter registrations by hand, which would have created
+     duplicates. Ask again with the same submissionId: doPost is idempotent on
+     it, so this confirms the truth without any risk of a second row. */
+  const confirm = await postToSheetOnce(payload, SHEET_CONFIRM_MS);
+  if (confirm.logged) return { logged: true, row: confirm.row, duplicate: confirm.duplicate, slow: true };
+
+  return { logged: false, unconfirmed: true,
+           error: "sheet timed out twice; the write may still have completed" };
+}
+
+async function postToSheetOnce(payload, timeoutMs) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), SHEET_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(SHEETS_WEBHOOK_URL, {
       method: "POST",
@@ -343,11 +366,13 @@ async function logToSheet(fields, submissionId) {
     let data = {};
     try { data = JSON.parse(raw); } catch (e) { /* non-JSON = failure */ }
     if (!response.ok || !data.ok) {
-      return { logged: false, error: "sheet responded " + response.status + " " + raw.slice(0, 200) };
+      return { logged: false, timedOut: false,
+               error: "sheet responded " + response.status + " " + raw.slice(0, 200) };
     }
-    return { logged: true, row: data.row, duplicate: !!data.duplicate };
+    return { logged: true, timedOut: false, row: data.row, duplicate: !!data.duplicate };
   } catch (err) {
-    return { logged: false, error: err.name === "AbortError" ? "sheet timed out" : err.message };
+    return { logged: false, timedOut: err.name === "AbortError",
+             error: err.name === "AbortError" ? "sheet timed out" : err.message };
   } finally {
     clearTimeout(timer);
   }
@@ -506,9 +531,16 @@ module.exports = async function handler(req, res) {
 
   let captureStatus;
   if (sheet.logged) {
-    captureStatus = "Google Sheet: Logged (row " + (sheet.row || "?") + ")";
+    captureStatus = "Google Sheet: Logged (row " + (sheet.row || "?") + ")" +
+                    (sheet.slow ? " — confirmed after a slow write" : "");
   } else if (sheet.skipped) {
     captureStatus = null; /* not a registration form — say nothing */
+  } else if (sheet.unconfirmed) {
+    /* Never tell staff to re-enter by hand on a timeout — the row is usually
+       already there, and manual entry would duplicate it. */
+    captureStatus = "Google Sheet status: UNCONFIRMED — the write was slow and may " +
+                    "have completed. Search MASTER REGISTRATIONS for Submission ID " +
+                    submissionId + " before taking any manual action.";
   } else {
     captureStatus = "Google Sheet: NOT LOGGED — add this registration to the master sheet by hand.";
   }
