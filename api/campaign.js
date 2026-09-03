@@ -59,7 +59,7 @@ const TEST_SUBJECT = "TEST \u2014 Thank You for Joining Us | Junior Wolves Town 
 
 /* Plain-text alternative. Same promises, same funnel language. */
 const TEXT_BODY = [
-  "THANK YOU FOR SHOWING UP.",
+  "THANK YOU FOR SHOWING UP!",
   "",
   "Junior Wolves Families,",
   "",
@@ -177,7 +177,7 @@ const THANKYOU_HTML = `<!doctype html>
     <!-- ============ HEADLINE ============ -->
     <tr><td class="jw-pad" align="left" style="padding:26px 36px 0 36px;">
       <div class="jw-display jw-h1" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:34px;line-height:38px;color:#ffffff;text-transform:uppercase;letter-spacing:-0.3px;">
-        Thank you for<br>showing up.
+        Thank you for<br>showing up!
       </div>
     </td></tr>
 
