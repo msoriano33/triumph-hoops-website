@@ -86,13 +86,13 @@ const TEXT_BODY = [
   "",
   "Already joined the list? You're all set for now. Keep an eye out for official tryout registration beginning September 8.",
   "",
-  "And if you know another Niles West family with a boy in grades 3-8 who may be interested, please share the Junior Wolves page with them.",
+  "And if you know another Niles West family with a boy in grades 3rd-8th who may be interested, please share the Junior Wolves page with them.",
   "",
   "FALL OPEN SKILLS CLINICS",
-  "September 27, 3:00-5:00 PM",
-  "October 11, 12:00-2:00 PM",
-  "October 25, 3:00-5:00 PM",
-  "Niles West High School. Boys, Grades 3-8.",
+  "September 27th, 3:00-5:00 PM",
+  "October 11th, 12:00-2:00 PM",
+  "October 25th, 3:00-5:00 PM",
+  "Niles West High School. Boys, Grades 3rd-8th.",
   "",
   "We're excited about where this can go, but programs like this are built over time - through players, coaches, families, and a community that believes in what we're trying to create.",
   "",
@@ -228,7 +228,7 @@ const THANKYOU_HTML = `<!doctype html>
     </td></tr>
 
     <tr><td class="jw-pad" align="left" style="padding:16px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">
-      And if you know another Niles West family with a boy in grades 3&ndash;8 who may be interested, please share the Junior Wolves page with them. We want to continue reaching families throughout the community and give future Wolves an opportunity to be part of what we&rsquo;re building.
+      And if you know another Niles West family with a boy in grades 3rd&ndash;8th who may be interested, please share the Junior Wolves page with them. We want to continue reaching families throughout the community and give future Wolves an opportunity to be part of what we&rsquo;re building.
     </td></tr>
 
     <!-- ============ CLINICS ============ -->
@@ -238,12 +238,12 @@ const THANKYOU_HTML = `<!doctype html>
           <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:2px;color:#a1a1aa;text-transform:uppercase;font-weight:bold;">This Fall</div>
           <div class="jw-display" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:20px;line-height:24px;color:#ffffff;text-transform:uppercase;padding-top:8px;">Fall Open Skills Clinics</div>
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="padding-top:14px;">
-            <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#ffffff;font-weight:bold;">September 27</td><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#a1a1aa;padding-left:12px;">3:00&ndash;5:00 PM</td></tr>
-            <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#ffffff;font-weight:bold;">October 11</td><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#a1a1aa;padding-left:12px;">12:00&ndash;2:00 PM</td></tr>
-            <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#ffffff;font-weight:bold;">October 25</td><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#a1a1aa;padding-left:12px;">3:00&ndash;5:00 PM</td></tr>
+            <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#ffffff;font-weight:bold;">September 27th</td><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#a1a1aa;padding-left:12px;">3:00&ndash;5:00 PM</td></tr>
+            <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#ffffff;font-weight:bold;">October 11th</td><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#a1a1aa;padding-left:12px;">12:00&ndash;2:00 PM</td></tr>
+            <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#ffffff;font-weight:bold;">October 25th</td><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#a1a1aa;padding-left:12px;">3:00&ndash;5:00 PM</td></tr>
           </table>
           <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#e4e4e7;padding-top:12px;">
-            Niles West High School<br>Boys &middot; Grades 3&ndash;8
+            Niles West High School<br>Boys &middot; Grades 3rd&ndash;8th
           </div>
         </td></tr>
       </table>
