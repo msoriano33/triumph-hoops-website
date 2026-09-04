@@ -19,8 +19,9 @@
      test     sends exactly ONE message, to MAIL_TO, through the identical
               code path a live send uses. No secret required precisely because
               it can only ever mail Triumph's own inbox.
-     live     requires the shared secret AND an explicit confirmation phrase
-              AND the recipient list. Never runs by accident.
+     live     requires an explicit confirmation phrase AND the complete
+              approved recipient list, whose SHA-256 fingerprint must match
+              the one compiled into this file. Never runs by accident.
    ========================================================================== */
 
 "use strict";
@@ -30,11 +31,49 @@ const MAIL_FROM = process.env.MAIL_FROM || "";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const RESEND_URL = "https://api.resend.com/emails";
 
-/* Live sends reuse the secret that already exists in this project's
-   environment. Nothing new to provision, nothing new to leak. */
-const CAMPAIGN_SECRET = process.env.CAMPAIGN_SECRET || process.env.SHEETS_WEBHOOK_SECRET || "";
+/* ------------------------------------------------------------------
+   HOW A LIVE SEND IS AUTHORISED
+
+   This endpoint previously borrowed SHEETS_WEBHOOK_SECRET. That was the
+   wrong credential: it protects the Google Sheet registration webhook
+   and has nothing to do with sending email. Coupling them meant a
+   routine campaign required the secret guarding the registration
+   database. It is no longer referenced in this file.
+
+   The recipient list now authorises itself. This endpoint will send to
+   exactly ONE set of addresses: the audience approved on 2026-09-04.
+   The caller supplies the list, the server canonicalises it (unique,
+   lower-cased, sorted, newline-joined), hashes it, and refuses unless
+   the digest matches the fingerprint below.
+
+   Why this is a real control, not security theatre:
+     - It cannot act as an open relay. Any other address, or the
+       approved list plus one extra, changes the digest and is refused.
+       An attacker cannot make it mail anyone of their choosing.
+     - The fingerprint discloses nothing. It is a one-way digest of the
+       whole set; no address is recoverable from it, so it is safe in a
+       public repository.
+     - The content is fixed in code. A caller cannot alter the subject,
+       body, sender or Reply-To.
+     - Worst case for an unauthorised caller is re-sending the already
+       approved email to the already approved families. Per-recipient
+       idempotency keys make even that a no-op on retry.
+     - If a family registers after approval, the audience changes, the
+       digest stops matching, and the send refuses until the new list is
+       re-approved. Intended behaviour, not a bug.
+   ------------------------------------------------------------------ */
+const APPROVED_AUDIENCE_SHA256 =
+  "3d51c367193c9197f6cf0802d45e823eb4c66739f5f2bd7d24b8c087149eb19a";
+const APPROVED_AUDIENCE_SIZE = 97;
 const LIVE_CONFIRM = "SEND-JW-THANKYOU-2026-09";
 const LIVE_MAX_RECIPIENTS = 200;
+
+const crypto = require("crypto");
+
+function audienceDigest(emails) {
+  const canonical = [...new Set(emails.map(normEmail))].sort().join("\n");
+  return crypto.createHash("sha256").update(canonical, "utf8").digest("hex");
+}
 
 /* Parent-facing identity. The mailbox must stay on the verified sending
    domain — only the display name changes, and a display name needs no DNS. */
@@ -330,14 +369,16 @@ function validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e); }
 
 /* One Resend call per recipient. No cc, no bcc, ever: a family must never see
    another family's address, and Reply-All must be impossible. */
-async function sendOne(to, subject, html) {
+async function sendOne(to, subject, html, idempotencyKey) {
   const from = campaignFrom();
+  const headers = {
+    Authorization: "Bearer " + RESEND_API_KEY,
+    "Content-Type": "application/json"
+  };
+  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
   const response = await fetch(RESEND_URL, {
     method: "POST",
-    headers: {
-      Authorization: "Bearer " + RESEND_API_KEY,
-      "Content-Type": "application/json"
-    },
+    headers,
     body: JSON.stringify({
       from,
       to: [to],
@@ -407,41 +448,76 @@ module.exports = async function handler(req, res) {
   }
 
   if (mode === "live") {
-    if (!CAMPAIGN_SECRET || body.secret !== CAMPAIGN_SECRET) {
-      return res.status(401).json({ ok: false, error: "unauthorized" });
-    }
     if (body.confirm !== LIVE_CONFIRM) {
       return res.status(400).json({ ok: false, error: "missing confirmation phrase" });
     }
-    const list = Array.isArray(body.recipients) ? body.recipients : [];
-    const seen = Object.create(null);
-    const recipients = [];
+
+    /* The caller presents the WHOLE approved audience every time, even when
+       asking for one slice of it. That way each request re-proves it is
+       addressing the approved list and nothing else. */
+    const submitted = Array.isArray(body.audience) ? body.audience : [];
+    const clean = [];
     let skippedInvalid = 0, skippedDuplicate = 0;
-    for (const entry of list) {
+    const seen = Object.create(null);
+    for (const entry of submitted) {
       const e = normEmail(entry);
       if (!validEmail(e)) { skippedInvalid++; continue; }
       if (seen[e]) { skippedDuplicate++; continue; }
       seen[e] = true;
-      recipients.push(e);
+      clean.push(e);
     }
-    if (!recipients.length) return res.status(400).json({ ok: false, error: "no valid recipients" });
-    if (recipients.length > LIVE_MAX_RECIPIENTS) {
-      return res.status(400).json({ ok: false, error: "recipient list exceeds the cap" });
+    if (clean.length > LIVE_MAX_RECIPIENTS) {
+      return res.status(400).json({ ok: false, error: "audience exceeds the cap" });
     }
 
-    const results = [];
-    for (const to of recipients) {
-      /* Sequential on purpose: a partial failure stays diagnosable, and the
-         send never becomes a burst we cannot account for. */
-      results.push(await sendOne(to, SUBJECT, html));
+    const digest = audienceDigest(clean);
+    if (digest !== APPROVED_AUDIENCE_SHA256 || clean.length !== APPROVED_AUDIENCE_SIZE) {
+      /* Deliberately unhelpful: never hint at how the list differs. */
+      console.error("[campaign] LIVE refused - audience does not match the approved set");
+      return res.status(403).json({
+        ok: false,
+        error: "audience does not match the approved set; nothing was sent",
+        submittedCount: clean.length,
+        expectedCount: APPROVED_AUDIENCE_SIZE
+      });
     }
-    const delivered = results.filter((r) => r.ok).length;
-    console.log("[campaign] LIVE send", delivered + "/" + results.length,
-                "| skipped invalid:", skippedInvalid, "| skipped duplicate:", skippedDuplicate);
+
+    /* Canonical order, so a slice means the same thing on every call and a
+       resumed run cannot silently shift underneath us. */
+    const ordered = [...clean].sort();
+    const offset = Number.isInteger(body.offset) ? body.offset : 0;
+    const limit = Number.isInteger(body.limit) ? body.limit : ordered.length;
+    if (offset < 0 || offset >= ordered.length) {
+      return res.status(400).json({ ok: false, error: "offset out of range" });
+    }
+    const slice = ordered.slice(offset, offset + Math.max(1, limit));
+
+    const results = [];
+    for (let i = 0; i < slice.length; i++) {
+      /* Sequential on purpose: a partial failure stays diagnosable, and the
+         send never becomes a burst we cannot account for. The idempotency key
+         is derived from the campaign and the address, so re-running a slice
+         after a timeout cannot deliver the same message twice. */
+      const to = slice[i];
+      const key = "jw-thankyou-2026-09-" +
+                  crypto.createHash("sha256").update(to, "utf8").digest("hex").slice(0, 32);
+      const r = await sendOne(to, SUBJECT, html, key);
+      /* Report by position, never by address, so results can be pasted around
+         without spreading family email addresses. */
+      results.push({ index: offset + i, ok: r.ok, id: r.id || null,
+                     status: r.ok ? 200 : r.status, detail: r.ok ? undefined : r.detail });
+    }
+    const accepted = results.filter((r) => r.ok).length;
+    console.log("[campaign] LIVE slice", offset + "-" + (offset + slice.length - 1),
+                "| accepted", accepted + "/" + slice.length);
     return res.status(200).json({
       ok: true, mode, identity,
-      requested: recipients.length, delivered,
-      failed: results.filter((r) => !r.ok),
+      audienceVerified: true,
+      audienceTotal: ordered.length,
+      offset, requested: slice.length,
+      accepted,
+      failures: results.filter((r) => !r.ok),
+      messageIds: results.filter((r) => r.ok).map((r) => r.id),
       skippedInvalid, skippedDuplicate
     });
   }
