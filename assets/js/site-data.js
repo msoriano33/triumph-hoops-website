@@ -150,7 +150,9 @@ window.TRIUMPH_DATA = {
     /* --- VIRTUAL TOWN HALL + MEET THE COACHES -------------------------- */
     townHall: {
       /* Zoom / Meet / Teams URL. Empty string = "Link coming soon" state. */
-      url: "https://www.canvaqr.com/RGQ6_f0uss",
+      /* The September 2 Town Hall has passed and its card is retired. Left
+         empty so no stale join link can ever be injected again. */
+      url: "",
       /* Shown as small print under the button. */
       note: "Or join us in person in the South Lobby at Niles West High School."
     },
