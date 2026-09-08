@@ -1293,7 +1293,10 @@ button { font: inherit; color: inherit; }
 .keydate-link:hover { color: var(--nw-red-bright); gap: 0.7rem; border-bottom-color: var(--nw-red-bright); }
 .keydate-link:focus-visible { outline: 3px solid var(--nw-red-bright); outline-offset: 4px; }
 @media (min-width: 780px) {
-  .keydates { grid-template-columns: repeat(3, 1fr); gap: 0 clamp(1.5rem, 3vw, 2.5rem); }
+  /* Count-agnostic: the rail holds three dates in a full season and fewer as
+     events pass. A hardcoded repeat(3) left an empty column behind each
+     retired date. */
+  .keydates { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 clamp(1.5rem, 3vw, 2.5rem); }
   .keydate { border-bottom: 0; border-left: 1px solid var(--black-line); padding: 1.75rem 0 1.75rem clamp(1.25rem, 2vw, 1.75rem); }
   .keydate:first-child { border-left: 0; padding-left: 0; }
 }
