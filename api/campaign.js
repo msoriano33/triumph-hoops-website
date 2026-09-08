@@ -344,6 +344,272 @@ const THANKYOU_HTML = `<!doctype html>
 </body>
 </html>`;
 
+const LAUNCH_HTML = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>Tryout Registration Is Now Open — Niles West Junior Wolves</title>
+<style>
+  /* JUNIOR WOLVES EMAIL SYSTEM v1.0 — unchanged from the Town Hall series. */
+  body { margin:0 !important; padding:0 !important; width:100% !important; }
+  table { border-collapse:collapse !important; }
+  img { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+  a { text-decoration:none; }
+  .jw-display { font-family: 'Arial Black','Arial Bold',Arial,Helvetica,sans-serif; }
+  @media screen and (max-width:620px) {
+    .jw-wrap { width:100% !important; }
+    .jw-pad { padding-left:22px !important; padding-right:22px !important; }
+    .jw-h1 { font-size:30px !important; line-height:34px !important; }
+    .jw-btn a { display:block !important; width:auto !important; }
+    .jw-stack { display:block !important; width:100% !important; }
+    .jw-gap { height:12px !important; line-height:12px !important; font-size:12px !important; }
+  }
+  @media (prefers-color-scheme: light) {
+    .jw-shell { background:#0b0b0c !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#000000;">
+
+<div style="display:none;font-size:1px;color:#000000;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+  Official Junior Wolves tryout registration is open. The Early Access List was not registration &mdash; this is.
+  &#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="background:#000000;">
+<tr><td align="center" style="padding:24px 12px;">
+
+  <table role="presentation" class="jw-wrap jw-shell" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#0b0b0c" style="width:600px;max-width:600px;background:#0b0b0c;">
+
+    <!-- ============ HEADER ============ -->
+    <tr><td class="jw-pad" align="left" bgcolor="#0b0b0c" style="padding:28px 36px 0 36px;background:#0b0b0c;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr><td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:16px;letter-spacing:2px;color:#ffffff;font-weight:bold;text-transform:uppercase;">
+          Niles West Junior Wolves
+        </td></tr>
+        <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:1.6px;color:#a1a1aa;text-transform:uppercase;padding-top:5px;">
+          Powered by Triumph Hoops Academy
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <!-- red rule -->
+    <tr><td class="jw-pad" style="padding:18px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="3" bgcolor="#c8102e" width="56" style="height:3px;line-height:3px;font-size:3px;background:#c8102e;width:56px;">&nbsp;</td>
+        <td height="3" bgcolor="#2a2a2f" style="height:3px;line-height:3px;font-size:3px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <!-- ============ HEADLINE ============ -->
+    <tr><td class="jw-pad" align="left" style="padding:26px 36px 0 36px;">
+      <div class="jw-display jw-h1" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:34px;line-height:38px;color:#ffffff;text-transform:uppercase;letter-spacing:-0.3px;">
+        Registration<br>is open.
+      </div>
+    </td></tr>
+
+    <!-- ============ BODY ============ -->
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">
+      <p style="margin:0 0 16px 0;">Junior Wolves Families,</p>
+      <p style="margin:0 0 16px 0;"><strong style="color:#ffffff;">Official Niles West Junior Wolves tryout registration is now open.</strong></p>
+      <p style="margin:0 0 16px 0;">If you previously joined the Junior Wolves Early Access List, thank you &mdash; that helped us stay connected with your family. The Early Access List was not your official tryout registration. If your son plans to try out for Junior Wolves, please complete the official tryout registration now.</p>
+      <p style="margin:0 0 16px 0;">The short version: Early Access kept you in the loop. Official registration is what puts your son on the tryout list.</p>
+      <p style="margin:0;">It takes a few minutes. Have his grade, school, and jersey and shorts sizes ready &mdash; we ask for the two sizes separately because most kids aren&rsquo;t the same size top and bottom, and we would rather ask you once now than chase sixty families in October.</p>
+    </td></tr>
+
+    <!-- ============ CTA ============ -->
+    <tr><td class="jw-pad" style="padding:28px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="1" bgcolor="#2a2a2f" style="height:1px;line-height:1px;font-size:1px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:24px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:14px;letter-spacing:2.4px;color:#ff3b52;font-weight:bold;text-transform:uppercase;">
+      Register Now
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:12px 36px 18px 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">
+      Open to boys in grades 3rd&ndash;8th who live in the Niles West district.
+    </td></tr>
+
+    <tr><td class="jw-pad" style="padding:0 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="jw-btn">
+        <tr><td align="center" bgcolor="#c8102e" style="background:#c8102e;border:2px solid #c8102e;">
+          <a href="EARLY_ACCESS_HREF" target="_blank" style="display:block;padding:16px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:18px;font-weight:bold;letter-spacing:1.4px;text-transform:uppercase;color:#ffffff;text-decoration:none;">Register for tryouts</a>
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:16px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#a1a1aa;">
+      Registering signs your son up to be evaluated. It does not reserve a roster spot &mdash; spots are earned at tryouts.
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:16px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">
+      And if you know another Niles West family with a boy in grades 3rd&ndash;8th who may be interested, please share the Junior Wolves page with them.
+    </td></tr>
+
+    <!-- ============ TRYOUTS ============ -->
+    <tr><td class="jw-pad" style="padding:26px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#17171a" style="background:#17171a;">
+        <tr><td style="padding:20px 22px;border-left:3px solid #c8102e;">
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:2px;color:#a1a1aa;text-transform:uppercase;font-weight:bold;">Tryouts</div>
+          <div class="jw-display" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:20px;line-height:24px;color:#ffffff;text-transform:uppercase;padding-top:8px;">Week of October 26</div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#e4e4e7;padding-top:12px;">
+            Currently planned as 2&ndash;3 tryout nights at Niles West High School. Exact grade-level dates and times are still being finalized and are posted on the Junior Wolves page once set.
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <!-- ============ CLINICS ============ -->
+    <tr><td class="jw-pad" style="padding:16px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#17171a" style="background:#17171a;">
+        <tr><td style="padding:20px 22px;border-left:3px solid #c8102e;">
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:2px;color:#a1a1aa;text-transform:uppercase;font-weight:bold;">Before Then</div>
+          <div class="jw-display" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:20px;line-height:24px;color:#ffffff;text-transform:uppercase;padding-top:8px;">Fall Open Skills Clinics</div>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="padding-top:14px;">
+            <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#ffffff;font-weight:bold;">September 27th</td><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#a1a1aa;padding-left:12px;">3:00&ndash;5:00 PM</td></tr>
+            <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#ffffff;font-weight:bold;">October 11th</td><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#a1a1aa;padding-left:12px;">12:00&ndash;2:00 PM</td></tr>
+            <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#ffffff;font-weight:bold;">October 25th</td><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;color:#a1a1aa;padding-left:12px;">3:00&ndash;5:00 PM</td></tr>
+          </table>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#e4e4e7;padding-top:12px;">
+            Niles West High School<br>Boys &middot; Grades 3rd&ndash;8th
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <!-- ============ CLOSE ============ -->
+    <tr><td class="jw-pad" align="left" style="padding:26px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">
+      <p style="margin:0 0 16px 0;">If you have a question about eligibility, eval, or where your son may fit, reply directly to this email. A coach reads them.</p>
+      <p style="margin:0;">We are glad your family is part of this.</p>
+    </td></tr>
+
+    <!-- ============ SIGNATURE ============ -->
+    <tr><td class="jw-pad" style="padding:30px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="1" bgcolor="#2a2a2f" style="height:1px;line-height:1px;font-size:1px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:24px 36px 0 36px;">
+      <div class="jw-display" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;color:#ffffff;text-transform:uppercase;letter-spacing:0.3px;">
+        The Wolf Way Starts Here.
+      </div>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:18px 36px 0 36px;">
+      <img src="JW_LOGO_SRC" width="200" height="139" alt="Niles West Junior Wolves Basketball" style="display:block;width:200px;max-width:200px;height:auto;border:0;outline:none;text-decoration:none;">
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:18px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#ffffff;">
+      <div style="font-weight:bold;">Oli &amp; Marlowe</div>
+      <div style="color:#a1a1aa;font-size:14px;line-height:21px;padding-top:2px;">Junior Wolves Basketball<br>Powered by Triumph Hoops Academy</div>
+    </td></tr>
+
+    <!-- ============ FOOTER ============ -->
+    <tr><td class="jw-pad" style="padding:30px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="1" bgcolor="#2a2a2f" style="height:1px;line-height:1px;font-size:1px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 34px 36px;">
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;letter-spacing:2px;color:#ff3b52;font-weight:bold;text-transform:uppercase;">
+        Earn your place in the pack.
+      </div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;color:#a1a1aa;padding-top:16px;">
+        Niles West Junior Wolves &middot; Powered by Triumph Hoops Academy<br>
+        <a href="mailto:triumphhoopsacademy@gmail.com" style="color:#a1a1aa;text-decoration:underline;">triumphhoopsacademy@gmail.com</a><br>
+        <a href="https://triumphhoopsacademy.com/junior-wolves" style="color:#a1a1aa;text-decoration:underline;">triumphhoopsacademy.com/junior-wolves</a>
+      </div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;color:#67676f;padding-top:16px;">
+        You&rsquo;re receiving this because you registered interest in Junior Wolves or previously shared your email with the Niles West feeder program. Reply to this email if you&rsquo;d rather not receive Junior Wolves updates.
+      </div>
+    </td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+</body>
+</html>`;
+
+const LAUNCH_TEXT = [
+  "NILES WEST JUNIOR WOLVES",
+  "Powered by Triumph Hoops Academy",
+  "",
+  "REGISTRATION IS OPEN.",
+  "",
+  "Junior Wolves Families,",
+  "",
+  "Official Niles West Junior Wolves tryout registration is now open.",
+  "",
+  "If you previously joined the Junior Wolves Early Access List, thank you -",
+  "that helped us stay connected with your family. The Early Access List was",
+  "not your official tryout registration. If your son plans to try out for",
+  "Junior Wolves, please complete the official tryout registration now.",
+  "",
+  "The short version: Early Access kept you in the loop. Official registration",
+  "is what puts your son on the tryout list.",
+  "",
+  "It takes a few minutes. Have his grade, school, and jersey and shorts sizes",
+  "ready - we ask for the two sizes separately because most kids aren't the",
+  "same size top and bottom.",
+  "",
+  "REGISTER FOR TRYOUTS:",
+  EARLY_ACCESS_URL,
+  "",
+  "Open to boys in grades 3rd-8th who live in the Niles West district.",
+  "Registering signs your son up to be evaluated. It does not reserve a roster",
+  "spot - spots are earned at tryouts.",
+  "",
+  "TRYOUTS - Week of October 26",
+  "Currently planned as 2-3 tryout nights at Niles West High School. Exact",
+  "grade-level dates and times are still being finalized and are posted on the",
+  "Junior Wolves page once set.",
+  "",
+  "FALL OPEN SKILLS CLINICS",
+  "September 27th  3:00-5:00 PM",
+  "October 11th    12:00-2:00 PM",
+  "October 25th    3:00-5:00 PM",
+  "Niles West High School - Boys, Grades 3rd-8th",
+  "",
+  "If you have a question about eligibility, eval, or where your son may fit,",
+  "reply directly to this email. A coach reads them.",
+  "",
+  "THE WOLF WAY STARTS HERE.",
+  "Oli & Marlowe",
+  "Junior Wolves Basketball - Powered by Triumph Hoops Academy",
+  "Earn your place in the pack.",
+  "triumphhoopsacademy@gmail.com"
+].join("\n");
+
+const LAUNCH_SUBJECT = "Tryout Registration Is Now Open | Niles West Junior Wolves";
+const LAUNCH_TEST_SUBJECT = "TEST \u2014 Junior Wolves Tryout Registration Is Now Open";
+
+/* Audience approved 2026-09-08, recomputed live from TOWN HALL RSVP +
+   MASTER REGISTRATIONS. Its own gate: the thank-you digest must not unlock
+   this send, and this digest must not unlock that one. */
+const APPROVED_LAUNCH_SHA256 =
+  "5461361d0a45fc13c55d160f7da91791923933b27bfc8c98d4c68510d4f90925";
+const APPROVED_LAUNCH_SIZE = 107;
+const LAUNCH_CONFIRM = "SEND-JW-REGOPEN-2026-09";
+
+function renderLaunchHtml() {
+  var html = LAUNCH_HTML
+    .replace(/EARLY_ACCESS_HREF/g, EARLY_ACCESS_URL)
+    .replace(/JW_LOGO_SRC/g, JW_LOGO_URL);
+  if (html.indexOf("EARLY_ACCESS_HREF") !== -1) throw new Error("CTA placeholder was not replaced");
+  if (html.indexOf("JW_LOGO_SRC") !== -1) throw new Error("logo placeholder was not replaced");
+  if (html.indexOf("/dev") !== -1) throw new Error("refusing to send: /dev URL found");
+  return html;
+}
+
 function renderHtml() {
   const html = THANKYOU_HTML
     .replace(/EARLY_ACCESS_HREF/g, EARLY_ACCESS_URL)
@@ -369,7 +635,7 @@ function validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e); }
 
 /* One Resend call per recipient. No cc, no bcc, ever: a family must never see
    another family's address, and Reply-All must be impossible. */
-async function sendOne(to, subject, html, idempotencyKey) {
+async function sendOne(to, subject, html, idempotencyKey, textAlt) {
   const from = campaignFrom();
   const headers = {
     Authorization: "Bearer " + RESEND_API_KEY,
@@ -384,7 +650,7 @@ async function sendOne(to, subject, html, idempotencyKey) {
       to: [to],
       reply_to: MAIL_TO,
       subject,
-      text: TEXT_BODY,
+      text: textAlt || TEXT_BODY,
       html
     })
   });
@@ -416,20 +682,36 @@ module.exports = async function handler(req, res) {
   catch (err) { return res.status(400).json({ ok: false, error: "Could not read request." }); }
 
   const mode = String(body.mode || "preview");
+  /* Two campaigns share this engine. "thankyou" stays the default so the
+     already-sent Town Hall campaign keeps its exact behaviour. */
+  const campaign = String(body.campaign || "thankyou");
+  if (campaign !== "thankyou" && campaign !== "launch") {
+    return res.status(400).json({ ok: false, error: "unknown campaign" });
+  }
+  const isLaunch = campaign === "launch";
   const from = campaignFrom();
 
   if (!RESEND_API_KEY) return res.status(500).json({ ok: false, error: "RESEND_API_KEY is not set." });
   if (!from) return res.status(500).json({ ok: false, error: "MAIL_FROM is not a usable verified sender." });
 
   let html;
-  try { html = renderHtml(); }
+  try { html = isLaunch ? renderLaunchHtml() : renderHtml(); }
   catch (err) { return res.status(500).json({ ok: false, error: err.message }); }
 
+  const subject      = isLaunch ? LAUNCH_SUBJECT      : SUBJECT;
+  const testSubject  = isLaunch ? LAUNCH_TEST_SUBJECT : TEST_SUBJECT;
+  const gateDigest   = isLaunch ? APPROVED_LAUNCH_SHA256 : APPROVED_AUDIENCE_SHA256;
+  const gateSize     = isLaunch ? APPROVED_LAUNCH_SIZE   : APPROVED_AUDIENCE_SIZE;
+  const gatePhrase   = isLaunch ? LAUNCH_CONFIRM         : LIVE_CONFIRM;
+  const idemPrefix   = isLaunch ? "jw-regopen-2026-09-"  : "jw-thankyou-2026-09-";
+  const textBody     = isLaunch ? LAUNCH_TEXT : TEXT_BODY;
+
   const identity = {
+    campaign,
     from,
     reply_to: MAIL_TO,
-    subject: SUBJECT,
-    testSubject: TEST_SUBJECT,
+    subject,
+    testSubject,
     cta: EARLY_ACCESS_URL,
     logo: JW_LOGO_URL,
     htmlChecksum: checksum(html),
@@ -442,13 +724,13 @@ module.exports = async function handler(req, res) {
 
   if (mode === "test") {
     /* Hard-wired to Triumph's own inbox. This branch cannot reach a family. */
-    const result = await sendOne(MAIL_TO, TEST_SUBJECT, html);
+    const result = await sendOne(MAIL_TO, testSubject, html, null, textBody);
     console.log("[campaign] TEST send", JSON.stringify(result));
     return res.status(result.ok ? 200 : 502).json({ ok: result.ok, mode, identity, result });
   }
 
   if (mode === "live") {
-    if (body.confirm !== LIVE_CONFIRM) {
+    if (body.confirm !== gatePhrase) {
       return res.status(400).json({ ok: false, error: "missing confirmation phrase" });
     }
 
@@ -471,14 +753,14 @@ module.exports = async function handler(req, res) {
     }
 
     const digest = audienceDigest(clean);
-    if (digest !== APPROVED_AUDIENCE_SHA256 || clean.length !== APPROVED_AUDIENCE_SIZE) {
+    if (digest !== gateDigest || clean.length !== gateSize) {
       /* Deliberately unhelpful: never hint at how the list differs. */
       console.error("[campaign] LIVE refused - audience does not match the approved set");
       return res.status(403).json({
         ok: false,
         error: "audience does not match the approved set; nothing was sent",
         submittedCount: clean.length,
-        expectedCount: APPROVED_AUDIENCE_SIZE
+        expectedCount: gateSize
       });
     }
 
@@ -499,9 +781,9 @@ module.exports = async function handler(req, res) {
          is derived from the campaign and the address, so re-running a slice
          after a timeout cannot deliver the same message twice. */
       const to = slice[i];
-      const key = "jw-thankyou-2026-09-" +
+      const key = idemPrefix +
                   crypto.createHash("sha256").update(to, "utf8").digest("hex").slice(0, 32);
-      const r = await sendOne(to, SUBJECT, html, key);
+      const r = await sendOne(to, subject, html, key, textBody);
       /* Report by position, never by address, so results can be pasted around
          without spreading family email addresses. */
       results.push({ index: offset + i, ok: r.ok, id: r.id || null,
