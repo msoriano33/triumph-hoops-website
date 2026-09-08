@@ -78,6 +78,8 @@ const FIELD_LABELS = {
   interest: "Interest",
   experience: "Basketball experience",
   current_team: "Current / previous team",
+  jersey_size: "Jersey / top size",
+  shorts_size: "Shorts / bottom size",
   coaching_experience: "Coaching experience",
   age_groups: "Age groups coached",
   parent_phone: "Phone",
@@ -263,6 +265,14 @@ function validate(fields) {
   if (!fields.parent_email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(fields.parent_email)) {
     errors.push("A valid email address is required.");
   }
+  /* Sizing exists so uniform orders can go out without chasing 60 families in
+     October. If it is optional it will be blank for half the roster, so the
+     official registration requires it. The interest list never asks. */
+  if (fields.source === "junior_wolves_tryout") {
+    if (!fields.jersey_size) errors.push("Jersey / top size is required.");
+    if (!fields.shorts_size) errors.push("Shorts / bottom size is required.");
+  }
+
   if (
     (fields.source === "junior_wolves_tryout" || fields.source === "junior_wolves_interest") &&
     !fields.acknowledgement
@@ -331,7 +341,11 @@ async function logToSheet(fields, submissionId) {
     currentTeam: clean(fields.current_team, 200),
     notes: clean(fields.message, 2000),
     eligibilityAcknowledged: fields.district_confirm ? "Yes" : "No",
-    page: clean(fields.page, 300)
+    page: clean(fields.page, 300),
+    /* Official tryout registration only. The interest list does not ask for
+       sizes, so these arrive empty and the sheet stores empty. */
+    jerseySize: clean(fields.jersey_size, 40),
+    shortsSize: clean(fields.shorts_size, 40)
   };
 
   const first = await postToSheetOnce(payload, SHEET_TIMEOUT_MS);
