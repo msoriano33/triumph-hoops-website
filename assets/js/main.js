@@ -391,6 +391,19 @@
     if (form) {
       var sourceField = $("input[name='source']", form);
       if (sourceField) sourceField.value = copy.source;
+
+      /* Uniform sizing belongs to official registration only. Reveal it and
+         make it required when the phase is open; keep it hidden AND
+         non-required otherwise, because a hidden required field silently
+         blocks submission with no visible error. */
+      $$("[data-reg-sizing]", form).forEach(function (group) {
+        group.hidden = !isOpen;
+        $$("select, input", group).forEach(function (field) {
+          if (isOpen) field.setAttribute("required", "required");
+          else field.removeAttribute("required");
+          if (!isOpen) field.value = "";
+        });
+      });
       form.setAttribute("data-success-heading", copy.successHeading);
       form.setAttribute("data-success-body", copy.successBody);
     }
