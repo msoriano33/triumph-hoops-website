@@ -1305,6 +1305,10 @@ button { font: inherit; color: inherit; }
 }
 @media (min-width: 900px) {
   .eventgrid { grid-template-columns: 7fr 5fr; align-items: start; }
+  /* When an event has passed and its card is retired, the grid would leave a
+     hole where the second column used to be. Cap the survivor instead so the
+     section still reads as composed rather than half-empty. */
+  .eventgrid--single { grid-template-columns: minmax(0, 44rem); }
 }
 .eventcard {
   display: flex;
