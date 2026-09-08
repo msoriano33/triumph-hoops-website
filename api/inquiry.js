@@ -54,11 +54,11 @@ const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
 /* 4.5s: leaves room for a second, shorter confirmation attempt below while
    staying well inside the platform request limit. A slow Apps Script run is no
    longer reported as a failure, so a tight first timeout is now safe. */
-const SHEET_TIMEOUT_MS = 4500;
+const SHEET_TIMEOUT_MS = 6500;
 /* Second, shorter attempt used ONLY to confirm a write we already timed out on.
    doPost is idempotent on submissionId (it returns duplicate:true instead of
    appending), so this can never create a second row. */
-const SHEET_CONFIRM_MS = 3000;
+const SHEET_CONFIRM_MS = 2000;
 
 /* Only Junior Wolves submissions go to the registration database. Every other
    Triumph form keeps its existing email-only behaviour. */
