@@ -163,7 +163,7 @@ window.TRIUMPH_DATA = {
                        "Register for tryouts" and the form submits as a
                        tryout registration.
          Change this ONE word on September 8. */
-      status: "scheduled",
+      status: "open",
 
       /* Optional external registration URL (e.g. a league or payment
          platform). Leave empty to keep using the form on this page. */
