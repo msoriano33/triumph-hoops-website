@@ -596,8 +596,8 @@ const LAUNCH_TEST_SUBJECT = "TEST \u2014 Junior Wolves Tryout Registration Is No
    MASTER REGISTRATIONS. Its own gate: the thank-you digest must not unlock
    this send, and this digest must not unlock that one. */
 const APPROVED_LAUNCH_SHA256 =
-  "5461361d0a45fc13c55d160f7da91791923933b27bfc8c98d4c68510d4f90925";
-const APPROVED_LAUNCH_SIZE = 107;
+  "ed1aaaeb1e358a9a252c42285701f12ab44a628e5d9b78e1bdf8611ebbd46205";
+const APPROVED_LAUNCH_SIZE = 109;
 const LAUNCH_CONFIRM = "SEND-JW-REGOPEN-2026-09";
 
 function renderLaunchHtml() {
