@@ -24,15 +24,17 @@ const CLINICS = require("../assets/js/clinics.js");
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
 
-/* The Vercel -> Apps Script round trip runs ~4-9 s even when the script itself
-   finishes in 1-2 s (measured live 2026-09-22: 6.5 s + 2.5 s was too tight and
-   every RSVP read as a failure while the row was written). Wait long enough
-   for the real answer; if the first wait still expires, ask again with the
-   SAME rsvpId: the script is idempotent on it, so the second call reports the
-   truth without any risk of a second row. 9 s + 6 s stays inside the page's
+/* Measured live 2026-09-22 (per-leg timing below):
+     - read-only answer (already on the list): POST leg ~2.5 s, echo ~0.2 s
+     - a NEW row: the script finishes in ~3 s, but the POST leg does not come
+       back for 9 s+ (Apps Script holds the response after a write to this
+       tab). The row is written either way.
+   So wait 5 s, then ask again with the SAME rsvpId. The script is idempotent
+   on it (and serialised by its lock), so the second call reports the truth in
+   ~1.7 s and can never add a second row. 5 s + 9 s stays inside the page's
    20 s client timeout. */
-const SHEET_TIMEOUT_MS = 9000;
-const SHEET_CONFIRM_MS = 6000;
+const SHEET_TIMEOUT_MS = 5000;
+const SHEET_CONFIRM_MS = 9000;
 
 function clean(value, max) {
   return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max || 200);
@@ -177,7 +179,7 @@ module.exports = async function handler(req, res) {
 
   /* Log by id only — never a family's name or address. */
   console.log("[clinic-rsvp]", rsvpId, f.clinic,
-              result.logged ? (result.duplicate ? "duplicate" : "logged") : ("FAILED " + result.error), JSON.stringify(timing));
+              result.logged ? (result.duplicate && result.rsvpId !== rsvpId ? "duplicate" : "logged") : ("FAILED " + result.error), JSON.stringify(timing));
 
   if (!result.logged) {
     /* Safe to ask the family to retry: a second submission for the same
@@ -187,8 +189,12 @@ module.exports = async function handler(req, res) {
       reason: String(result.error || "").slice(0, 40), timing: timing });
   }
 
+  /* A confirm call that finds OUR OWN rsvpId is this request's write, not an
+     earlier RSVP — report it as new. Only a different rsvpId means the family
+     had already RSVP'd. */
+  const alreadyListed = !!result.duplicate && result.rsvpId !== rsvpId;
   return res.status(200).json({ delivered: true, rsvpId: result.rsvpId,
-    duplicate: result.duplicate, reactivated: result.reactivated, clinic: f.clinic, timing: timing });
+    duplicate: alreadyListed, reactivated: result.reactivated, clinic: f.clinic, timing: timing });
 };
 
 module.exports.chicagoNow = chicagoNow;
