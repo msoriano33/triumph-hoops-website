@@ -151,6 +151,13 @@
     var payload = {};
     new FormData(form).forEach(function (v, k) { payload[k] = typeof v === "string" ? v.trim() : v; });
     payload.source = source;
+    /* One id per submission, made here, so every retry and confirm (even after
+       a dropped connection) refers to the same row. The server only accepts
+       ids of exactly this shape. */
+    try {
+      var rnd = new Uint8Array(4); (window.crypto || window.msCrypto).getRandomValues(rnd);
+      payload.rsvp_id = "CR-2026-" + Array.prototype.map.call(rnd, function (x) { return ("0" + x.toString(16)).slice(-2); }).join("").toUpperCase();
+    } catch (e) { /* no crypto: the server assigns one */ }
 
     var button = $("button[type='submit']", form), label = button.textContent;
     function unlock() { form.removeAttribute("data-submitting"); button.disabled = false; button.textContent = label; }
@@ -158,40 +165,58 @@
     button.disabled = true; button.textContent = "Sending…";
     status("ok", "Sending your RSVP…");
 
-    var controller = typeof AbortController === "function" ? new AbortController() : null;
-    var timer = setTimeout(function () { if (controller) controller.abort(); }, 30000);
-    /* A new RSVP usually takes ~10 s to confirm. Say so, so nobody taps twice
-       or leaves thinking it hung. */
+    /* The sheet sometimes takes a long time to hand back its answer even
+       though the RSVP is already saved. So: ask, and if the server says
+       "pending", ask again with the SAME rsvpId (safe — it can never create a
+       second row) for up to ~90 s, telling the family what is happening.
+       Success is only shown when the server has actually confirmed the row. */
+    var MAX_ATTEMPTS = 6, attempt = 0, started = Date.now();
     var slow = setTimeout(function () {
-      status("ok", "Still saving &mdash; this can take up to 15 seconds. Please keep this page open.");
-    }, 4000);
+      status("ok", "Still saving &mdash; this can take up to a minute. Please keep this page open.");
+    }, 5000);
 
-    fetch("/api/clinic-rsvp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller ? controller.signal : undefined
-    })
-      .then(function (res) {
-        return res.json().catch(function () { return {}; }).then(function (b) { return { ok: res.ok, status: res.status, body: b }; });
+    function finishFail(html) {
+      clearTimeout(slow); unlock(); status("err", html);
+    }
+    function send() {
+      attempt++;
+      var controller = typeof AbortController === "function" ? new AbortController() : null;
+      var timer = setTimeout(function () { if (controller) controller.abort(); }, 25000);
+      fetch("/api/clinic-rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller ? controller.signal : undefined
       })
-      .then(function (r) {
-        clearTimeout(timer); clearTimeout(slow);
-        if (r.ok && r.body && r.body.delivered === true) { success(r.body, payload); return; }
-        unlock();
-        if (r.status === 400 && r.body && r.body.error) {
-          status("err", "<strong>Check one more thing.</strong><br>" + esc(r.body.error));
-          return;
-        }
-        status("err", "<strong>We couldn't save your RSVP just now.</strong><br>" +
+        .then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (b) { return { ok: res.ok, status: res.status, body: b }; });
+        })
+        .then(function (r) {
+          clearTimeout(timer);
+          var b = r.body || {};
+          if (b.rsvpId) payload.rsvp_id = b.rsvpId;          // keep asking about the same row
+          if (r.ok && b.delivered === true) { clearTimeout(slow); success(b, payload); return; }
+          if (r.status === 400 && b.error) {
+            finishFail("<strong>Check one more thing.</strong><br>" + esc(b.error));
+            return;
+          }
+          retryOrGiveUp(r.status === 202);
+        })
+        .catch(function () { clearTimeout(timer); retryOrGiveUp(true); });
+    }
+    function retryOrGiveUp(pending) {
+      if (attempt < MAX_ATTEMPTS && Date.now() - started < 90000) {
+        if (attempt >= 2) status("ok", "Still confirming your RSVP with our sheet &mdash; please keep this page open.");
+        setTimeout(send, 2500);
+        return;
+      }
+      finishFail(pending
+        ? "<strong>We haven't been able to confirm your RSVP yet.</strong><br>" +
+          "It may already be saved. You can press the button again &mdash; it won't create a duplicate &mdash; " +
+          'or email <a href="mailto:' + EMAIL_TO + '">' + EMAIL_TO + "</a> and we'll check for you."
+        : "<strong>We couldn't save your RSVP just now.</strong><br>" +
           "Your answers are still here &mdash; press the button again. Submitting twice won't create a duplicate.");
-      })
-      .catch(function () {
-        clearTimeout(timer); clearTimeout(slow);
-        unlock();
-        status("err", "<strong>The connection dropped.</strong><br>" +
-          "Your answers are still here &mdash; press the button again. If it keeps happening, email " +
-          '<a href="mailto:' + EMAIL_TO + '">' + EMAIL_TO + "</a>.");
-      });
+    }
+    send();
   });
 })();
