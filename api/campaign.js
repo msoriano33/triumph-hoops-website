@@ -610,6 +610,283 @@ function renderLaunchHtml() {
   return html;
 }
 
+const CLINIC_HTML = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>Junior Wolves Free Clinic This Sunday — RSVP</title>
+<style>
+  /* JUNIOR WOLVES EMAIL SYSTEM v1.0 — unchanged from the Town Hall series. */
+  body { margin:0 !important; padding:0 !important; width:100% !important; }
+  table { border-collapse:collapse !important; }
+  img { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+  a { text-decoration:none; }
+  .jw-display { font-family: 'Arial Black','Arial Bold',Arial,Helvetica,sans-serif; }
+  @media screen and (max-width:620px) {
+    .jw-wrap { width:100% !important; }
+    .jw-pad { padding-left:22px !important; padding-right:22px !important; }
+    .jw-h1 { font-size:30px !important; line-height:34px !important; }
+    .jw-btn a { display:block !important; width:auto !important; }
+    .jw-stack { display:block !important; width:100% !important; }
+    .jw-gap { height:12px !important; line-height:12px !important; font-size:12px !important; }
+  }
+  @media (prefers-color-scheme: light) {
+    .jw-shell { background:#0b0b0c !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#000000;">
+
+<div style="display:none;font-size:1px;color:#000000;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+  Help our coaches plan for Sunday by letting us know your player is coming.
+  &#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="background:#000000;">
+<tr><td align="center" style="padding:24px 12px;">
+
+  <table role="presentation" class="jw-wrap jw-shell" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#0b0b0c" style="width:600px;max-width:600px;background:#0b0b0c;">
+
+    <!-- ============ HEADER ============ -->
+    <tr><td class="jw-pad" align="left" bgcolor="#0b0b0c" style="padding:28px 36px 0 36px;background:#0b0b0c;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr><td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:16px;letter-spacing:2px;color:#ffffff;font-weight:bold;text-transform:uppercase;">
+          Niles West Junior Wolves
+        </td></tr>
+        <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:1.6px;color:#a1a1aa;text-transform:uppercase;padding-top:5px;">
+          Powered by Triumph Hoops Academy
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <!-- red rule -->
+    <tr><td class="jw-pad" style="padding:18px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="3" bgcolor="#c8102e" width="56" style="height:3px;line-height:3px;font-size:3px;background:#c8102e;width:56px;">&nbsp;</td>
+        <td height="3" bgcolor="#2a2a2f" style="height:3px;line-height:3px;font-size:3px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <!-- ============ HEADLINE ============ -->
+    <tr><td class="jw-pad" align="left" style="padding:26px 36px 0 36px;">
+      <div class="jw-display jw-h1" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:34px;line-height:38px;color:#ffffff;text-transform:uppercase;letter-spacing:-0.3px;">
+        Free clinic<br>this Sunday
+      </div>
+    </td></tr>
+
+    <!-- ============ BODY ============ -->
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">
+      <p style="margin:0 0 16px 0;">Junior Wolves Families,</p>
+      <p style="margin:0 0 16px 0;">Our first Junior Wolves Free Skills Clinic is this Sunday. We&rsquo;re excited to get the boys in the gym and begin building together.</p>
+      <p style="margin:0;">If your player plans to attend, please take a few seconds to RSVP. Knowing each player&rsquo;s grade and age ahead of time will help our coaching staff plan groups, court space and instruction for the afternoon.</p>
+    </td></tr>
+
+    <!-- ============ EVENT ============ -->
+    <tr><td class="jw-pad" style="padding:26px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#17171a" style="background:#17171a;">
+        <tr><td style="padding:22px 22px;border-left:3px solid #c8102e;">
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:2px;color:#ff3b52;text-transform:uppercase;font-weight:bold;">Free Junior Wolves Skills Clinic</div>
+          <div class="jw-display" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:22px;line-height:26px;color:#ffffff;text-transform:uppercase;padding-top:10px;">Sunday, September 27</div>
+          <div class="jw-display" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;color:#ffffff;text-transform:uppercase;padding-top:4px;">3:00&ndash;5:00 PM</div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#e4e4e7;padding-top:14px;">
+            <strong style="color:#ffffff;text-transform:uppercase;letter-spacing:0.5px;">Niles West High School</strong><br>5701 Oakton St<br>Skokie, IL 60077
+          </div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;letter-spacing:1.4px;color:#ffffff;text-transform:uppercase;font-weight:bold;padding-top:14px;">
+            Boys &middot; Grades 3rd&ndash;8th
+          </div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;letter-spacing:1.4px;color:#ff3b52;text-transform:uppercase;font-weight:bold;padding-top:4px;">
+            Free to attend
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <!-- ============ CTA ============ -->
+    <tr><td class="jw-pad" style="padding:26px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="jw-btn">
+        <tr><td align="center" bgcolor="#c8102e" style="background:#c8102e;border:2px solid #c8102e;">
+          <a href="CLINIC_RSVP_HREF" target="_blank" style="display:block;padding:16px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:18px;font-weight:bold;letter-spacing:1.4px;text-transform:uppercase;color:#ffffff;text-decoration:none;">RSVP for Sunday&rsquo;s Clinic</a>
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:14px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#a1a1aa;">
+      The RSVP takes less than a minute. Bringing brothers? RSVP once for each player.
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:12px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#a1a1aa;">
+      A clinic RSVP is not tryout registration. Can&rsquo;t make Sunday? The next clinics are October 11th (12:00&ndash;2:00 PM) and October 25th (3:00&ndash;5:00 PM).
+    </td></tr>
+
+    <!-- ============ WHAT TO BRING (secondary; never competes with the CTA) ============ -->
+    <tr><td class="jw-pad" align="left" style="padding:20px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;">
+      <div style="font-size:10px;line-height:14px;letter-spacing:2px;color:#a1a1aa;text-transform:uppercase;font-weight:bold;">What to bring</div>
+      <div style="font-size:14px;line-height:22px;color:#a1a1aa;padding-top:6px;">Athletes should bring their own basketball if they have one, along with water and basketball shoes.</div>
+    </td></tr>
+
+    <!-- ============ SECONDARY: tryout registration (text link only) ============ -->
+    <tr><td class="jw-pad" style="padding:24px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="1" bgcolor="#2a2a2f" style="height:1px;line-height:1px;font-size:1px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+    <tr><td class="jw-pad" align="left" style="padding:18px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#a1a1aa;">
+      Official Junior Wolves tryout registration is already open, separately, on the
+      <a href="TRYOUT_REG_HREF" target="_blank" style="color:#e4e4e7;text-decoration:underline;">Junior Wolves page</a>.
+    </td></tr>
+
+    <!-- ============ CLOSE ============ -->
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">
+      <p style="margin:0 0 16px 0;">Questions? Reply directly to this email.</p>
+      <p style="margin:0;">See you Sunday.</p>
+    </td></tr>
+
+    <!-- ============ SIGNATURE ============ -->
+    <tr><td class="jw-pad" style="padding:30px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="1" bgcolor="#2a2a2f" style="height:1px;line-height:1px;font-size:1px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:24px 36px 0 36px;">
+      <div class="jw-display" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;color:#ffffff;text-transform:uppercase;letter-spacing:0.3px;">
+        The Wolf Way Starts Here.
+      </div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;letter-spacing:2px;color:#a1a1aa;font-weight:bold;text-transform:uppercase;padding-top:10px;">
+        Effort &middot; Basketball IQ &middot; Unbreakable Connection
+      </div>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:18px 36px 0 36px;">
+      <img src="JW_LOGO_SRC" width="200" height="139" alt="Niles West Junior Wolves Basketball" style="display:block;width:200px;max-width:200px;height:auto;border:0;outline:none;text-decoration:none;">
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:18px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#ffffff;">
+      <div style="font-weight:bold;">Oli &amp; Marlowe</div>
+      <div style="color:#a1a1aa;font-size:14px;line-height:21px;padding-top:2px;">Junior Wolves<br>Powered by Triumph Hoops Academy</div>
+    </td></tr>
+
+    <!-- ============ FOOTER ============ -->
+    <tr><td class="jw-pad" style="padding:30px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="1" bgcolor="#2a2a2f" style="height:1px;line-height:1px;font-size:1px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 34px 36px;">
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;letter-spacing:2px;color:#ff3b52;font-weight:bold;text-transform:uppercase;">
+        Earn your place in the pack.
+      </div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;color:#a1a1aa;padding-top:16px;">
+        Niles West Junior Wolves &middot; Powered by Triumph Hoops Academy<br>
+        <a href="mailto:triumphhoopsacademy@gmail.com" style="color:#a1a1aa;text-decoration:underline;">triumphhoopsacademy@gmail.com</a><br>
+        <a href="https://triumphhoopsacademy.com/junior-wolves" style="color:#a1a1aa;text-decoration:underline;">triumphhoopsacademy.com/junior-wolves</a>
+      </div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;color:#67676f;padding-top:16px;">
+        You&rsquo;re receiving this because you registered interest in Junior Wolves or previously shared your email with the Niles West feeder program. Reply to this email if you&rsquo;d rather not receive Junior Wolves updates.
+      </div>
+    </td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+</body>
+</html>`;
+
+/* ---------------- Campaign 3: September 27 clinic reminder + RSVP ---------------- */
+const CLINIC_RSVP_URL = "https://www.triumphhoopsacademy.com/clinic-rsvp?clinic=2026-09-27";
+const TRYOUT_REG_URL = "https://www.triumphhoopsacademy.com/junior-wolves#register";
+const CLINIC_SUBJECT = "Junior Wolves Free Clinic This Sunday \u2014 RSVP";
+const CLINIC_TEST_SUBJECT = "TEST \u2014 Junior Wolves Free Clinic This Sunday \u2014 RSVP";
+const CLINIC_TEXT = [
+  "NILES WEST JUNIOR WOLVES",
+  "Powered by Triumph Hoops Academy",
+  "",
+  "FREE CLINIC THIS SUNDAY",
+  "",
+  "Junior Wolves Families,",
+  "",
+  "Our first Junior Wolves Free Skills Clinic is this Sunday. We're excited to get",
+  "the boys in the gym and begin building together.",
+  "",
+  "If your player plans to attend, please take a few seconds to RSVP. Knowing each",
+  "player's grade and age ahead of time will help our coaching staff plan groups,",
+  "court space and instruction for the afternoon.",
+  "",
+  "FREE JUNIOR WOLVES SKILLS CLINIC",
+  "Sunday, September 27",
+  "3:00-5:00 PM",
+  "Niles West High School",
+  "5701 Oakton St",
+  "Skokie, IL 60077",
+  "Boys - Grades 3rd-8th",
+  "FREE TO ATTEND",
+  "",
+  "RSVP FOR SUNDAY'S CLINIC:",
+  CLINIC_RSVP_URL,
+  "",
+  "The RSVP takes less than a minute. Bringing brothers? RSVP once for each player.",
+  "A clinic RSVP is not tryout registration. Can't make Sunday? The next clinics are",
+  "October 11th (12:00-2:00 PM) and October 25th (3:00-5:00 PM).",
+  "",
+  "WHAT TO BRING",
+  "Athletes should bring their own basketball if they have one, along with water",
+  "and basketball shoes.",
+  "",
+  "Official Junior Wolves tryout registration is already open, separately:",
+  TRYOUT_REG_URL,
+  "",
+  "Questions? Reply directly to this email.",
+  "See you Sunday.",
+  "",
+  "THE WOLF WAY STARTS HERE.",
+  "Effort - Basketball IQ - Unbreakable Connection",
+  "Oli & Marlowe",
+  "Junior Wolves",
+  "Powered by Triumph Hoops Academy",
+  "Earn your place in the pack.",
+  "triumphhoopsacademy@gmail.com"
+].join("\n");
+
+/* Gate starts CLOSED: an empty digest matches no audience. It is set only
+   after the audience is recomputed and Marlowe approves the send. */
+const APPROVED_CLINIC_SHA256 = "";
+const APPROVED_CLINIC_SIZE = 0;
+const CLINIC_CONFIRM = "SEND-JW-CLINIC-2026-09-27";
+
+function renderClinicHtml() {
+  var html = CLINIC_HTML
+    .replace(/CLINIC_RSVP_HREF/g, CLINIC_RSVP_URL)
+    .replace(/TRYOUT_REG_HREF/g, TRYOUT_REG_URL)
+    .replace(/JW_LOGO_SRC/g, JW_LOGO_URL);
+  ["CLINIC_RSVP_HREF", "TRYOUT_REG_HREF", "JW_LOGO_SRC", "EARLY_ACCESS_HREF"].forEach(function (p) {
+    if (html.indexOf(p) !== -1) throw new Error("placeholder was not replaced: " + p);
+  });
+  if (html.indexOf("/dev") !== -1) throw new Error("refusing to send: /dev URL found");
+  return html;
+}
+
+/* One row per campaign. Each has its own gate, confirmation phrase and
+   idempotency prefix, so no campaign's approval can unlock another, and a
+   family who received an earlier campaign is never deduped against this one. */
+function campaignConfig(name) {
+  if (name === "clinic") return { render: renderClinicHtml, subject: CLINIC_SUBJECT, testSubject: CLINIC_TEST_SUBJECT,
+    digest: APPROVED_CLINIC_SHA256, size: APPROVED_CLINIC_SIZE, phrase: CLINIC_CONFIRM,
+    prefix: "jw-clinic-2026-09-27-", text: CLINIC_TEXT, cta: CLINIC_RSVP_URL };
+  if (name === "launch") return { render: renderLaunchHtml, subject: LAUNCH_SUBJECT, testSubject: LAUNCH_TEST_SUBJECT,
+    digest: APPROVED_LAUNCH_SHA256, size: APPROVED_LAUNCH_SIZE, phrase: LAUNCH_CONFIRM,
+    prefix: "jw-regopen-2026-09-", text: LAUNCH_TEXT, cta: EARLY_ACCESS_URL };
+  if (name === "thankyou") return { render: renderHtml, subject: SUBJECT, testSubject: TEST_SUBJECT,
+    digest: APPROVED_AUDIENCE_SHA256, size: APPROVED_AUDIENCE_SIZE, phrase: LIVE_CONFIRM,
+    prefix: "jw-thankyou-2026-09-", text: TEXT_BODY, cta: EARLY_ACCESS_URL };
+  return null;
+}
+
 function renderHtml() {
   const html = THANKYOU_HTML
     .replace(/EARLY_ACCESS_HREF/g, EARLY_ACCESS_URL)
@@ -685,26 +962,20 @@ module.exports = async function handler(req, res) {
   /* Two campaigns share this engine. "thankyou" stays the default so the
      already-sent Town Hall campaign keeps its exact behaviour. */
   const campaign = String(body.campaign || "thankyou");
-  if (campaign !== "thankyou" && campaign !== "launch") {
-    return res.status(400).json({ ok: false, error: "unknown campaign" });
-  }
-  const isLaunch = campaign === "launch";
+  const cfg = campaignConfig(campaign);
+  if (!cfg) return res.status(400).json({ ok: false, error: "unknown campaign" });
   const from = campaignFrom();
 
   if (!RESEND_API_KEY) return res.status(500).json({ ok: false, error: "RESEND_API_KEY is not set." });
   if (!from) return res.status(500).json({ ok: false, error: "MAIL_FROM is not a usable verified sender." });
 
   let html;
-  try { html = isLaunch ? renderLaunchHtml() : renderHtml(); }
+  try { html = cfg.render(); }
   catch (err) { return res.status(500).json({ ok: false, error: err.message }); }
 
-  const subject      = isLaunch ? LAUNCH_SUBJECT      : SUBJECT;
-  const testSubject  = isLaunch ? LAUNCH_TEST_SUBJECT : TEST_SUBJECT;
-  const gateDigest   = isLaunch ? APPROVED_LAUNCH_SHA256 : APPROVED_AUDIENCE_SHA256;
-  const gateSize     = isLaunch ? APPROVED_LAUNCH_SIZE   : APPROVED_AUDIENCE_SIZE;
-  const gatePhrase   = isLaunch ? LAUNCH_CONFIRM         : LIVE_CONFIRM;
-  const idemPrefix   = isLaunch ? "jw-regopen-2026-09-"  : "jw-thankyou-2026-09-";
-  const textBody     = isLaunch ? LAUNCH_TEXT : TEXT_BODY;
+  const subject = cfg.subject, testSubject = cfg.testSubject;
+  const gateDigest = cfg.digest, gateSize = cfg.size, gatePhrase = cfg.phrase;
+  const idemPrefix = cfg.prefix, textBody = cfg.text;
 
   const identity = {
     campaign,
@@ -712,7 +983,7 @@ module.exports = async function handler(req, res) {
     reply_to: MAIL_TO,
     subject,
     testSubject,
-    cta: EARLY_ACCESS_URL,
+    cta: cfg.cta,
     logo: JW_LOGO_URL,
     htmlChecksum: checksum(html),
     engine: "resend"
