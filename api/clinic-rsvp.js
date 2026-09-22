@@ -26,15 +26,20 @@ const CLINICS = require("../assets/js/clinics.js");
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
 
-/* Measured live 2026-09-22 (per-leg timing is returned in `timing`): the
-   Apps Script POST answers its 302 in ~2-3 s, and the echo GET normally takes
-   <1 s, but a GET on a reused keep-alive socket sometimes never answers. The
-   GET now runs on a fresh socket with a 3.5 s per-try limit and retries inside
-   this budget (see getEcho). If the whole budget still runs out, ask again with
-   the SAME rsvpId: the script is idempotent on it and serialised by its lock,
-   so the second call can never add a second row. 12 s + 8 s stays inside the
+/* Measured live 2026-09-22 (per-leg timing is returned in `timing`):
+     - The Apps Script POST answers its 302 in ~1.5-3 s (7 s idle limit).
+     - For a read-only answer ("already on the list") the echo GET returns in
+       <1 s.
+     - For a NEW row, Google holds that write's echo URL for 10 s+ (three
+       fresh-socket tries over ~10 s all got nothing), even though the row is
+       already written.
+   So the first call waits only ECHO_FIRST_MS for its echo, then asks again
+   with the SAME rsvpId. The script is idempotent on it and serialised by its
+   lock, so the confirm is a read that answers in ~2.5 s and can never add a
+   second row. Typical new RSVP: ~8 s. Worst case 12 s + 8 s, inside the
    page's 30 s client timeout. */
 const SHEET_TIMEOUT_MS = 12000;
+const ECHO_FIRST_MS = 3000;
 const SHEET_CONFIRM_MS = 8000;
 
 function clean(value, max) {
@@ -125,8 +130,8 @@ function postFresh(url, body, ms) {
   });
 }
 
-async function postOnce(payload, timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
+async function postOnce(payload, timeoutMs, echoMs) {
+  let deadline = Date.now() + timeoutMs;
   const t0 = Date.now();
   const trace = { postMs: 0, postStatus: 0, getMs: 0, getStatus: 0, getTries: 0 };
   try {
@@ -139,6 +144,7 @@ async function postOnce(payload, timeoutMs) {
       return parse(response.raw, response, payload, trace);
     }
     const t1 = Date.now();
+    if (echoMs) deadline = Math.min(deadline, t1 + echoMs);
     let lastErr = null;
     while (Date.now() < deadline - 300) {
       trace.getTries++;
@@ -215,9 +221,9 @@ module.exports = async function handler(req, res) {
   };
 
   const t0 = Date.now();
-  let result = await postOnce(payload, SHEET_TIMEOUT_MS);
+  let result = await postOnce(payload, SHEET_TIMEOUT_MS, ECHO_FIRST_MS);
   const firstMs = Date.now() - t0, firstErr = result.logged ? "" : result.error, firstTrace = result.trace;
-  if (!result.logged && result.timedOut) result = await postOnce(payload, SHEET_CONFIRM_MS);
+  if (!result.logged && result.timedOut) result = await postOnce(payload, SHEET_CONFIRM_MS, 0);
   const timing = { firstMs: firstMs, firstErr: firstErr, totalMs: Date.now() - t0, firstTrace: firstTrace, trace: result.trace };
 
   /* Log by id only — never a family's name or address. */
