@@ -252,6 +252,32 @@ function buildBody(fields, notes, meta) {
 }
 
 /* --------------------------------------------------------------------------
+   Canonical sizes (2026-09-22). The stored value is always one of SIZES,
+   whatever the browser showed. The form's <option>s carry explicit English
+   values, so translation changes only the label; this maps anything that still
+   arrives translated (e.g. "Juventud L", "Juvenil XL", "Adulto M") back to the
+   canonical English value, and rejects anything else on the tryout form.
+   -------------------------------------------------------------------------- */
+const SIZES = ["Youth S", "Youth M", "Youth L", "Youth XL", "Adult S", "Adult M", "Adult L", "Adult XL"];
+function canonicalSize(value) {
+  const v = String(value == null ? "" : value).replace(/\s+/g, " ").trim();
+  if (!v) return "";
+  const m = v.match(/^(youth|juventud|juvenil|jeunesse|jugend|adult|adulto|adulte|erwachsene?)\s*(xs|s|m|l|xl)$/i);
+  if (!m) return null;
+  const group = /^(youth|juventud|juvenil|jeunesse|jugend)$/i.test(m[1]) ? "Youth" : "Adult";
+  const size = m[2].toUpperCase();
+  const out = group + " " + size;
+  return SIZES.includes(out) ? out : null;
+}
+function canonicalizeSizes(fields) {
+  ["jersey_size", "shorts_size"].forEach(function (k) {
+    if (fields[k] == null || fields[k] === "") return;
+    const c = canonicalSize(fields[k]);
+    fields[k] = c === null ? "__invalid__" : c;
+  });
+}
+
+/* --------------------------------------------------------------------------
    Validation — server side, independent of the browser.
    -------------------------------------------------------------------------- */
 function validate(fields) {
@@ -270,7 +296,9 @@ function validate(fields) {
      official registration requires it. The interest list never asks. */
   if (fields.source === "junior_wolves_tryout") {
     if (!fields.jersey_size) errors.push("Jersey / top size is required.");
+    else if (fields.jersey_size === "__invalid__") errors.push("Choose a jersey / top size from the list.");
     if (!fields.shorts_size) errors.push("Shorts / bottom size is required.");
+    else if (fields.shorts_size === "__invalid__") errors.push("Choose a shorts / bottom size from the list.");
   }
 
   if (
@@ -514,6 +542,7 @@ module.exports = async function handler(req, res) {
     return res.status(429).json({ delivered: false, error: "Too many submissions. Try again shortly." });
   }
 
+  canonicalizeSizes(fields);
   const errors = validate(fields);
 
   /* Silently accept honeypot traffic so scripts do not learn the rules.
