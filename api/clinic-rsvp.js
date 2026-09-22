@@ -32,15 +32,15 @@ const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
      - The echo GET that carries the answer normally returns in <1 s, but
        unpredictably hangs (no headers) or returns 404 — for new rows AND for
        read-only duplicate answers. The row is written either way.
-   So one server call never waits long: first attempt 9 s (POST 7 s idle limit,
-   echo 3 s), one confirm with the SAME rsvpId 6 s. If the answer still has not
+   So one server call is bounded: first attempt 10 s (POST 7 s idle limit, echo
+   up to 6 s on a fresh socket), one confirm with the SAME rsvpId 10 s. If the answer still has not
    come back, the call returns 202 { pending, rsvpId } and the PAGE asks again
    with that rsvpId (see assets/js/clinic-rsvp.js). Re-asking is safe: the script
    is idempotent on rsvpId and on player + clinic + parent email, and is
    serialised by its lock, so it can never add a second row. */
-const SHEET_TIMEOUT_MS = 9000;
-const ECHO_FIRST_MS = 3000;
-const SHEET_CONFIRM_MS = 6000;
+const SHEET_TIMEOUT_MS = 10000;
+const ECHO_FIRST_MS = 6000;
+const SHEET_CONFIRM_MS = 10000;
 const RSVP_ID_RE = /^CR-2026-[0-9A-F]{8}$/;
 
 function clean(value, max) {
@@ -150,8 +150,11 @@ async function postOnce(payload, timeoutMs, echoMs) {
     while (Date.now() < deadline - 300) {
       trace.getTries++;
       try {
-        const echo = await getEcho(location, Math.min(3500, deadline - Date.now()));
+        const echo = await getEcho(location, Math.max(500, deadline - Date.now()));
         trace.getStatus = echo.status; trace.getMs = Date.now() - t1;
+        /* A 4xx/5xx from the echo host says nothing about the RSVP itself
+           (the answer expired or was not ready): outcome unknown -> confirm. */
+        if (echo.status >= 400) return { logged: false, timedOut: true, error: "echo " + echo.status, trace: trace };
         return parse(echo.raw, echo, payload, trace);
       } catch (e) { lastErr = e; }
     }
