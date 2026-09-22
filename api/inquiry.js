@@ -258,14 +258,14 @@ function buildBody(fields, notes, meta) {
    arrives translated (e.g. "Juventud L", "Juvenil XL", "Adulto M") back to the
    canonical English value, and rejects anything else on the tryout form.
    -------------------------------------------------------------------------- */
-const SIZES = ["Youth S", "Youth M", "Youth L", "Youth XL", "Adult S", "Adult M", "Adult L", "Adult XL"];
+const SIZES = ["Youth S", "Youth M", "Youth L", "Youth XL", "Adult S", "Adult M", "Adult L", "Adult XL", "Adult 2XL"];
 function canonicalSize(value) {
   const v = String(value == null ? "" : value).replace(/\s+/g, " ").trim();
   if (!v) return "";
-  const m = v.match(/^(youth|juventud|juvenil|jeunesse|jugend|adult|adulto|adulte|erwachsene?)\s*(xs|s|m|l|xl)$/i);
+  const m = v.match(/^(youth|juventud|juvenil|jeunesse|jugend|adult|adulto|adulte|erwachsene?)\s*(xs|s|m|l|xl|2xl|xxl)$/i);
   if (!m) return null;
   const group = /^(youth|juventud|juvenil|jeunesse|jugend)$/i.test(m[1]) ? "Youth" : "Adult";
-  const size = m[2].toUpperCase();
+  const size = m[2].toUpperCase() === "XXL" ? "2XL" : m[2].toUpperCase();
   const out = group + " " + size;
   return SIZES.includes(out) ? out : null;
 }
