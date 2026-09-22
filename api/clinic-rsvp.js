@@ -103,29 +103,41 @@ function getEcho(url, ms, hops) {
   });
 }
 
+/* POST on a fresh socket too, for the same reason as getEcho. Returns the
+   302's Location without following it. */
+function postFresh(url, body, ms) {
+  return new Promise(function (resolve, reject) {
+    const lib = url.indexOf("http://") === 0 ? http : https;
+    const req = lib.request(url, { method: "POST", agent: false, timeout: ms,
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) } }, function (res) {
+      let raw = "";
+      res.setEncoding("utf8");
+      res.on("data", function (c) { raw += c; });
+      res.on("end", function () {
+        resolve({ status: res.statusCode, ok: res.statusCode >= 200 && res.statusCode < 300,
+                  location: res.headers.location ? new URL(res.headers.location, url).toString() : "", raw: raw });
+      });
+      res.on("error", reject);
+    });
+    req.on("timeout", function () { req.destroy(Object.assign(new Error("post timeout"), { name: "AbortError" })); });
+    req.on("error", reject);
+    req.end(body);
+  });
+}
+
 async function postOnce(payload, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const t0 = Date.now();
   const trace = { postMs: 0, postStatus: 0, getMs: 0, getStatus: 0, getTries: 0 };
   try {
     /* Apps Script answers a POST with a 302 to a one-time echo URL. Follow it
        by hand so each leg is timed and the GET can be retried. */
-    const response = await fetch(SHEETS_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      redirect: "manual",
-      signal: controller.signal
-    });
+    const response = await postFresh(SHEETS_WEBHOOK_URL, JSON.stringify(payload), Math.min(7000, timeoutMs));
     trace.postMs = Date.now() - t0; trace.postStatus = response.status;
-    const location = response.headers.get("location");
+    const location = response.location;
     if (!(response.status >= 300 && response.status < 400 && location)) {
-      const raw = await response.text();
-      return parse(raw, { ok: response.ok, status: response.status }, payload, trace);
+      return parse(response.raw, response, payload, trace);
     }
-    clearTimeout(timer);
     const t1 = Date.now();
     let lastErr = null;
     while (Date.now() < deadline - 300) {
@@ -140,8 +152,6 @@ async function postOnce(payload, timeoutMs) {
     return { logged: false, timedOut: true, error: (lastErr && lastErr.name) || "AbortError", trace: trace };
   } catch (err) {
     return { logged: false, timedOut: err.name === "AbortError", error: err.name, trace: trace };
-  } finally {
-    clearTimeout(timer);
   }
 }
 
