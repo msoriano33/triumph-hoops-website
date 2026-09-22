@@ -1553,3 +1553,17 @@ button { font: inherit; color: inherit; }
   padding: 1.9rem 0 0.7rem;
 }
 .accordion > .faq-group:first-child { padding-top: 1.1rem; }
+
+/* --- Clinic RSVP (clinic-rsvp.html) ------------------------------------ */
+/* Additive only: reuses .split, .form-wrap, .field and .spec-list as-is. */
+.jw-rsvp-date { margin-top: var(--sp-3); }
+.jw-rsvp-time {
+  margin-top: var(--sp-2);
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 90, "wght" 700;
+  font-size: clamp(1.2rem, 3vw, 1.55rem);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.jw-rsvp-group { margin: var(--sp-5) 0 var(--sp-3); }
+#form-clinic-rsvp > .field:first-of-type { margin-bottom: 0; }
