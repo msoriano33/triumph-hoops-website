@@ -27,20 +27,21 @@ const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
 
 /* Measured live 2026-09-22 (per-leg timing is returned in `timing`):
-     - The Apps Script POST answers its 302 in ~1.5-3 s (7 s idle limit).
-     - For a read-only answer ("already on the list") the echo GET returns in
-       <1 s.
-     - For a NEW row, Google holds that write's echo URL for 10 s+ (three
-       fresh-socket tries over ~10 s all got nothing), even though the row is
-       already written.
-   So the first call waits only ECHO_FIRST_MS for its echo, then asks again
-   with the SAME rsvpId. The script is idempotent on it and serialised by its
-   lock, so the confirm is a read that answers in ~2.5 s and can never add a
-   second row. Typical new RSVP: ~8 s. Worst case 12 s + 8 s, inside the
-   page's 30 s client timeout. */
-const SHEET_TIMEOUT_MS = 12000;
+     - The Apps Script POST normally answers its 302 in ~1.5-3 s, but now and
+       then hangs for 7 s+.
+     - The echo GET that carries the answer normally returns in <1 s, but
+       unpredictably hangs (no headers) or returns 404 — for new rows AND for
+       read-only duplicate answers. The row is written either way.
+   So one server call never waits long: first attempt 9 s (POST 7 s idle limit,
+   echo 3 s), one confirm with the SAME rsvpId 6 s. If the answer still has not
+   come back, the call returns 202 { pending, rsvpId } and the PAGE asks again
+   with that rsvpId (see assets/js/clinic-rsvp.js). Re-asking is safe: the script
+   is idempotent on rsvpId and on player + clinic + parent email, and is
+   serialised by its lock, so it can never add a second row. */
+const SHEET_TIMEOUT_MS = 9000;
 const ECHO_FIRST_MS = 3000;
-const SHEET_CONFIRM_MS = 8000;
+const SHEET_CONFIRM_MS = 6000;
+const RSVP_ID_RE = /^CR-2026-[0-9A-F]{8}$/;
 
 function clean(value, max) {
   return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max || 200);
@@ -157,7 +158,10 @@ async function postOnce(payload, timeoutMs, echoMs) {
     trace.getMs = Date.now() - t1;
     return { logged: false, timedOut: true, error: (lastErr && lastErr.name) || "AbortError", trace: trace };
   } catch (err) {
-    return { logged: false, timedOut: err.name === "AbortError", error: err.name, trace: trace };
+    /* Any transport error (timeout, reset, DNS) leaves the outcome UNKNOWN —
+       the request may have reached the script. Treat it like a timeout so the
+       caller confirms instead of reporting failure. */
+    return { logged: false, timedOut: true, error: err.name || "network", trace: trace };
   }
 }
 
@@ -205,7 +209,10 @@ module.exports = async function handler(req, res) {
     return res.status(503).json({ delivered: false, error: "RSVP is temporarily unavailable." });
   }
 
-  const rsvpId = "CR-2026-" + crypto.randomBytes(4).toString("hex").toUpperCase();
+  /* A page re-asking about a pending RSVP sends back the rsvpId we gave it, so
+     the confirm is keyed to the same row. Anything else gets a fresh id. */
+  const rsvpId = RSVP_ID_RE.test(String(body.rsvp_id || "")) ? String(body.rsvp_id)
+    : "CR-2026-" + crypto.randomBytes(4).toString("hex").toUpperCase();
   const payload = {
     secret: SHEETS_WEBHOOK_SECRET,
     kind: "clinic_rsvp",
@@ -237,7 +244,13 @@ module.exports = async function handler(req, res) {
   if (!result.logged) {
     /* Safe to ask the family to retry: a second submission for the same
        player, clinic and parent email is recognised as a duplicate. */
-    return res.status(502).json({ delivered: false,
+    /* Timed out waiting, not refused: the row may well be written. Say
+       "pending", never "failed", and let the page ask again with this id. */
+    if (result.timedOut) {
+      return res.status(202).json({ delivered: false, pending: true, rsvpId: rsvpId,
+        reason: String(result.error || "").slice(0, 40), timing: timing });
+    }
+    return res.status(502).json({ delivered: false, rsvpId: rsvpId,
       error: "We couldn't save your RSVP just now. Please try again in a moment.",
       reason: String(result.error || "").slice(0, 40), timing: timing });
   }
