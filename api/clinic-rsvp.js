@@ -80,25 +80,42 @@ async function readBody(req) {
 async function postOnce(payload, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const t0 = Date.now();
+  const trace = { postMs: 0, postStatus: 0, getMs: 0, getStatus: 0 };
   try {
-    const response = await fetch(SHEETS_WEBHOOK_URL, {
+    /* Apps Script answers a POST with a 302 to a one-time echo URL. Follow it
+       by hand so each leg is timed separately. */
+    let response = await fetch(SHEETS_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-      redirect: "follow",
+      redirect: "manual",
       signal: controller.signal
     });
+    trace.postMs = Date.now() - t0; trace.postStatus = response.status;
+    if (response.status >= 300 && response.status < 400 && response.headers.get("location")) {
+      const t1 = Date.now();
+      response = await fetch(response.headers.get("location"), { method: "GET", redirect: "follow", signal: controller.signal });
+      trace.getStatus = response.status;
+      const raw0 = await response.text();
+      trace.getMs = Date.now() - t1;
+      return parse(raw0, response, payload, trace);
+    }
     const raw = await response.text();
-    let data = {};
-    try { data = JSON.parse(raw); } catch (e) { /* non-JSON = failure */ }
-    if (!response.ok || !data.ok) return { logged: false, timedOut: false, error: "sheet " + response.status };
-    return { logged: true, row: data.row, duplicate: !!data.duplicate,
-             reactivated: !!data.reactivated, rsvpId: data.rsvpId || payload.rsvpId };
+    return parse(raw, response, payload, trace);
   } catch (err) {
-    return { logged: false, timedOut: err.name === "AbortError", error: err.name };
+    return { logged: false, timedOut: err.name === "AbortError", error: err.name, trace: trace };
   } finally {
     clearTimeout(timer);
   }
+}
+
+function parse(raw, response, payload, trace) {
+  let data = {};
+  try { data = JSON.parse(raw); } catch (e) { /* non-JSON = failure */ }
+  if (!response.ok || !data.ok) return { logged: false, timedOut: false, error: "sheet " + response.status, trace: trace };
+  return { logged: true, row: data.row, duplicate: !!data.duplicate, trace: trace,
+           reactivated: !!data.reactivated, rsvpId: data.rsvpId || payload.rsvpId };
 }
 
 module.exports = async function handler(req, res) {
@@ -154,9 +171,9 @@ module.exports = async function handler(req, res) {
 
   const t0 = Date.now();
   let result = await postOnce(payload, SHEET_TIMEOUT_MS);
-  const firstMs = Date.now() - t0, firstErr = result.logged ? "" : result.error;
+  const firstMs = Date.now() - t0, firstErr = result.logged ? "" : result.error, firstTrace = result.trace;
   if (!result.logged && result.timedOut) result = await postOnce(payload, SHEET_CONFIRM_MS);
-  const timing = { firstMs: firstMs, firstErr: firstErr, totalMs: Date.now() - t0 };
+  const timing = { firstMs: firstMs, firstErr: firstErr, totalMs: Date.now() - t0, firstTrace: firstTrace, trace: result.trace };
 
   /* Log by id only — never a family's name or address. */
   console.log("[clinic-rsvp]", rsvpId, f.clinic,
