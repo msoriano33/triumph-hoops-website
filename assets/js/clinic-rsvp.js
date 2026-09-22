@@ -53,6 +53,8 @@
   }
 
   var requested = (location.search.match(/[?&]clinic=(\d{4}-\d{2}-\d{2})/) || [])[1];
+  /* Link attribution (?source=social_qr etc.), carried into the RSVP row. */
+  var source = ((location.search.match(/[?&]source=([a-z0-9_-]{1,32})(?:&|$)/) || [])[1]) || "web";
   var selected = byId(requested) || byId(C.activeClinic) || upcoming[0];
 
   /* ---- Populate the controlled inputs -------------------------------- */
@@ -131,7 +133,7 @@
         '<p class="lead">' + when + "<br>" + esc(C.location.name) + "</p>" +
         (already ? '<p class="small muted">No need to RSVP again.</p>' : "") +
         '<p class="small muted">This RSVP helps coaches plan groups. It is not tryout registration.</p>' +
-        '<div class="btn-row"><a class="btn btn--outline" href="clinic-rsvp?clinic=' + c.id + '">RSVP another player</a></div>' +
+        '<div class="btn-row"><a class="btn btn--outline" href="clinic-rsvp?clinic=' + c.id + (source !== "web" ? "&source=" + source : "") + '">RSVP another player</a></div>' +
       "</div>";
     var t = document.getElementById("clinic-rsvp-success");
     if (t) t.focus();
@@ -148,6 +150,7 @@
 
     var payload = {};
     new FormData(form).forEach(function (v, k) { payload[k] = typeof v === "string" ? v.trim() : v; });
+    payload.source = source;
 
     var button = $("button[type='submit']", form), label = button.textContent;
     function unlock() { form.removeAttribute("data-submitting"); button.disabled = false; button.textContent = label; }
