@@ -156,7 +156,12 @@
     status("ok", "Sending your RSVP…");
 
     var controller = typeof AbortController === "function" ? new AbortController() : null;
-    var timer = setTimeout(function () { if (controller) controller.abort(); }, 20000);
+    var timer = setTimeout(function () { if (controller) controller.abort(); }, 30000);
+    /* A new RSVP usually takes ~10 s to confirm. Say so, so nobody taps twice
+       or leaves thinking it hung. */
+    var slow = setTimeout(function () {
+      status("ok", "Still saving &mdash; this can take up to 15 seconds. Please keep this page open.");
+    }, 4000);
 
     fetch("/api/clinic-rsvp", {
       method: "POST",
@@ -168,7 +173,7 @@
         return res.json().catch(function () { return {}; }).then(function (b) { return { ok: res.ok, status: res.status, body: b }; });
       })
       .then(function (r) {
-        clearTimeout(timer);
+        clearTimeout(timer); clearTimeout(slow);
         if (r.ok && r.body && r.body.delivered === true) { success(r.body, payload); return; }
         unlock();
         if (r.status === 400 && r.body && r.body.error) {
@@ -179,7 +184,7 @@
           "Your answers are still here &mdash; press the button again. Submitting twice won't create a duplicate.");
       })
       .catch(function () {
-        clearTimeout(timer);
+        clearTimeout(timer); clearTimeout(slow);
         unlock();
         status("err", "<strong>The connection dropped.</strong><br>" +
           "Your answers are still here &mdash; press the button again. If it keeps happening, email " +
