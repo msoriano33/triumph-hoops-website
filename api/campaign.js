@@ -855,8 +855,8 @@ const CLINIC_TEXT = [
 
 /* Gate starts CLOSED: an empty digest matches no audience. It is set only
    after the audience is recomputed and Marlowe approves the send. */
-const APPROVED_CLINIC_SHA256 = "";
-const APPROVED_CLINIC_SIZE = 0;
+const APPROVED_CLINIC_SHA256 = "1feadd0333b5c64b7dcf23f5da57a2347edd75e0682ab8107db7de1899ed31e0";
+const APPROVED_CLINIC_SIZE = 139;
 const CLINIC_CONFIRM = "SEND-JW-CLINIC-2026-09-27";
 
 function renderClinicHtml() {
