@@ -19,20 +19,21 @@
 "use strict";
 
 const crypto = require("crypto");
+const https = require("https");
+const http = require("http");
 const CLINICS = require("../assets/js/clinics.js");
 
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
 
-/* Measured live 2026-09-22 (per-leg timing is returned in `timing`):
-     - a read-only answer (already on the list): ~2.7 s end to end.
-     - after a NEW row is written, Apps Script executes in ~2-3 s but holds
-       every web-app response (this one and any other arriving meanwhile)
-       until ~10 s after the write. The row is written either way.
-   So wait up to 12 s for the first answer, then ask once more with the SAME
-   rsvpId: the script is idempotent on it and serialised by its lock, so the
-   second call can never add a second row. 12 s + 8 s stays inside the page's
-   30 s client timeout. */
+/* Measured live 2026-09-22 (per-leg timing is returned in `timing`): the
+   Apps Script POST answers its 302 in ~2-3 s, and the echo GET normally takes
+   <1 s, but a GET on a reused keep-alive socket sometimes never answers. The
+   GET now runs on a fresh socket with a 3.5 s per-try limit and retries inside
+   this budget (see getEcho). If the whole budget still runs out, ask again with
+   the SAME rsvpId: the script is idempotent on it and serialised by its lock,
+   so the second call can never add a second row. 12 s + 8 s stays inside the
+   page's 30 s client timeout. */
 const SHEET_TIMEOUT_MS = 12000;
 const SHEET_CONFIRM_MS = 8000;
 
@@ -79,15 +80,39 @@ async function readBody(req) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
 }
 
+/* GET the Apps Script echo URL on a FRESH connection (agent:false). Measured
+   2026-09-22: the POST leg answers its 302 in ~2-3 s, but a pooled keep-alive
+   GET to the echo host sometimes never gets headers back. A new socket per
+   attempt, a short per-attempt timeout and a retry fix that. */
+function getEcho(url, ms, hops) {
+  return new Promise(function (resolve, reject) {
+    const lib = url.indexOf("http://") === 0 ? http : https;
+    const req = lib.get(url, { agent: false, timeout: ms }, function (res) {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && (hops || 0) < 3) {
+        res.resume();
+        return resolve(getEcho(new URL(res.headers.location, url).toString(), ms, (hops || 0) + 1));
+      }
+      let raw = "";
+      res.setEncoding("utf8");
+      res.on("data", function (c) { raw += c; });
+      res.on("end", function () { resolve({ status: res.statusCode, ok: res.statusCode >= 200 && res.statusCode < 300, raw: raw }); });
+      res.on("error", reject);
+    });
+    req.on("timeout", function () { req.destroy(Object.assign(new Error("echo timeout"), { name: "AbortError" })); });
+    req.on("error", reject);
+  });
+}
+
 async function postOnce(payload, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const t0 = Date.now();
-  const trace = { postMs: 0, postStatus: 0, getMs: 0, getStatus: 0 };
+  const trace = { postMs: 0, postStatus: 0, getMs: 0, getStatus: 0, getTries: 0 };
   try {
     /* Apps Script answers a POST with a 302 to a one-time echo URL. Follow it
-       by hand so each leg is timed separately. */
-    let response = await fetch(SHEETS_WEBHOOK_URL, {
+       by hand so each leg is timed and the GET can be retried. */
+    const response = await fetch(SHEETS_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -95,16 +120,24 @@ async function postOnce(payload, timeoutMs) {
       signal: controller.signal
     });
     trace.postMs = Date.now() - t0; trace.postStatus = response.status;
-    if (response.status >= 300 && response.status < 400 && response.headers.get("location")) {
-      const t1 = Date.now();
-      response = await fetch(response.headers.get("location"), { method: "GET", redirect: "follow", signal: controller.signal });
-      trace.getStatus = response.status;
-      const raw0 = await response.text();
-      trace.getMs = Date.now() - t1;
-      return parse(raw0, response, payload, trace);
+    const location = response.headers.get("location");
+    if (!(response.status >= 300 && response.status < 400 && location)) {
+      const raw = await response.text();
+      return parse(raw, { ok: response.ok, status: response.status }, payload, trace);
     }
-    const raw = await response.text();
-    return parse(raw, response, payload, trace);
+    clearTimeout(timer);
+    const t1 = Date.now();
+    let lastErr = null;
+    while (Date.now() < deadline - 300) {
+      trace.getTries++;
+      try {
+        const echo = await getEcho(location, Math.min(3500, deadline - Date.now()));
+        trace.getStatus = echo.status; trace.getMs = Date.now() - t1;
+        return parse(echo.raw, echo, payload, trace);
+      } catch (e) { lastErr = e; }
+    }
+    trace.getMs = Date.now() - t1;
+    return { logged: false, timedOut: true, error: (lastErr && lastErr.name) || "AbortError", trace: trace };
   } catch (err) {
     return { logged: false, timedOut: err.name === "AbortError", error: err.name, trace: trace };
   } finally {
