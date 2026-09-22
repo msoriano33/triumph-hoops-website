@@ -24,12 +24,15 @@ const CLINICS = require("../assets/js/clinics.js");
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
 
-/* Same shape as the registration path, which measured the real Vercel ->
-   Apps Script round trip at ~4-9 s. If the first wait expires, ask again with
-   the SAME rsvpId: the script is idempotent on it, so the second call reports
-   the truth without any risk of a second row. */
-const SHEET_TIMEOUT_MS = 6500;
-const SHEET_CONFIRM_MS = 2500;
+/* The Vercel -> Apps Script round trip runs ~4-9 s even when the script itself
+   finishes in 1-2 s (measured live 2026-09-22: 6.5 s + 2.5 s was too tight and
+   every RSVP read as a failure while the row was written). Wait long enough
+   for the real answer; if the first wait still expires, ask again with the
+   SAME rsvpId: the script is idempotent on it, so the second call reports the
+   truth without any risk of a second row. 9 s + 6 s stays inside the page's
+   20 s client timeout. */
+const SHEET_TIMEOUT_MS = 9000;
+const SHEET_CONFIRM_MS = 6000;
 
 function clean(value, max) {
   return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max || 200);
@@ -149,22 +152,26 @@ module.exports = async function handler(req, res) {
     parentEmail: f.parent_email
   };
 
+  const t0 = Date.now();
   let result = await postOnce(payload, SHEET_TIMEOUT_MS);
+  const firstMs = Date.now() - t0, firstErr = result.logged ? "" : result.error;
   if (!result.logged && result.timedOut) result = await postOnce(payload, SHEET_CONFIRM_MS);
+  const timing = { firstMs: firstMs, firstErr: firstErr, totalMs: Date.now() - t0 };
 
   /* Log by id only — never a family's name or address. */
   console.log("[clinic-rsvp]", rsvpId, f.clinic,
-              result.logged ? (result.duplicate ? "duplicate" : "logged") : ("FAILED " + result.error));
+              result.logged ? (result.duplicate ? "duplicate" : "logged") : ("FAILED " + result.error), JSON.stringify(timing));
 
   if (!result.logged) {
     /* Safe to ask the family to retry: a second submission for the same
        player, clinic and parent email is recognised as a duplicate. */
     return res.status(502).json({ delivered: false,
-      error: "We couldn't save your RSVP just now. Please try again in a moment." });
+      error: "We couldn't save your RSVP just now. Please try again in a moment.",
+      reason: String(result.error || "").slice(0, 40), timing: timing });
   }
 
   return res.status(200).json({ delivered: true, rsvpId: result.rsvpId,
-    duplicate: result.duplicate, reactivated: result.reactivated, clinic: f.clinic });
+    duplicate: result.duplicate, reactivated: result.reactivated, clinic: f.clinic, timing: timing });
 };
 
 module.exports.chicagoNow = chicagoNow;
