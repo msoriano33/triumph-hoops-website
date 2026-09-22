@@ -191,7 +191,10 @@ module.exports = async function handler(req, res) {
     school: clean(body.school, 120),
     parent_name: clean(body.parent_name, 120),
     parent_email: clean(body.parent_email, 200).toLowerCase(),
-    clinic: clean(body.clinic, 10)
+    clinic: clean(body.clinic, 10),
+    /* Where the RSVP came from (?source= on the link: social_qr, email, ...).
+       Lower-case slug only; anything else is recorded as "web". */
+    source: /^[a-z0-9_-]{1,32}$/.test(String(body.source || "")) ? String(body.source) : "web"
   };
 
   const problem = validate(f);
@@ -217,7 +220,8 @@ module.exports = async function handler(req, res) {
     age: Number(f.age),
     school: f.school,
     parentName: f.parent_name,
-    parentEmail: f.parent_email
+    parentEmail: f.parent_email,
+    source: f.source
   };
 
   const t0 = Date.now();
