@@ -24,17 +24,17 @@ const CLINICS = require("../assets/js/clinics.js");
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
 
-/* Measured live 2026-09-22 (per-leg timing below):
-     - read-only answer (already on the list): POST leg ~2.5 s, echo ~0.2 s
-     - a NEW row: the script finishes in ~3 s, but the POST leg does not come
-       back for 9 s+ (Apps Script holds the response after a write to this
-       tab). The row is written either way.
-   So wait 5 s, then ask again with the SAME rsvpId. The script is idempotent
-   on it (and serialised by its lock), so the second call reports the truth in
-   ~1.7 s and can never add a second row. 5 s + 9 s stays inside the page's
-   20 s client timeout. */
-const SHEET_TIMEOUT_MS = 5000;
-const SHEET_CONFIRM_MS = 9000;
+/* Measured live 2026-09-22 (per-leg timing is returned in `timing`):
+     - a read-only answer (already on the list): ~2.7 s end to end.
+     - after a NEW row is written, Apps Script executes in ~2-3 s but holds
+       every web-app response (this one and any other arriving meanwhile)
+       until ~10 s after the write. The row is written either way.
+   So wait up to 12 s for the first answer, then ask once more with the SAME
+   rsvpId: the script is idempotent on it and serialised by its lock, so the
+   second call can never add a second row. 12 s + 8 s stays inside the page's
+   30 s client timeout. */
+const SHEET_TIMEOUT_MS = 12000;
+const SHEET_CONFIRM_MS = 8000;
 
 function clean(value, max) {
   return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max || 200);
