@@ -1083,8 +1083,8 @@ const DAYOF_HTML = `<!doctype html>
 </body>
 </html>`;
 
-const APPROVED_DAYOF_SHA256 = "35f82cd7172523949a0e42a281f0516cef9e46996c58e3e21bb214f22a5d6287";
-const APPROVED_DAYOF_SIZE = 77;
+const APPROVED_DAYOF_SHA256 = "99be34813b1cf6b9c3fd102644daecb4c792eda9ddc91cd297a29cfdd5843ee4";
+const APPROVED_DAYOF_SIZE = 78;
 const DAYOF_CONFIRM = "SEND-JW-DAYOF-2026-09-27";
 
 function renderDayofHtml() {
