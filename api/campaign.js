@@ -1100,6 +1100,230 @@ function renderDayofHtml() {
   return html;
 }
 
+const OCT11FIX_HTML = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>Your October 11 clinic time has changed</title>
+<style>
+  body { margin:0 !important; padding:0 !important; width:100% !important; }
+  table { border-collapse:collapse !important; }
+  img { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+  a { text-decoration:none; }
+  .jw-display { font-family: 'Arial Black','Arial Bold',Arial,Helvetica,sans-serif; }
+  @media screen and (max-width:620px) {
+    .jw-wrap { width:100% !important; }
+    .jw-pad { padding-left:22px !important; padding-right:22px !important; }
+    .jw-h1 { font-size:28px !important; line-height:32px !important; }
+    .jw-time { font-size:28px !important; line-height:32px !important; }
+  }
+  @media (prefers-color-scheme: light) { .jw-shell { background:#0b0b0c !important; } }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#000000;">
+
+<div style="display:none;font-size:1px;color:#000000;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+  OCT11_PREHEADER
+  &#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="background:#000000;">
+<tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" class="jw-wrap jw-shell" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#0b0b0c" style="width:600px;max-width:600px;background:#0b0b0c;">
+
+    <tr><td class="jw-pad" align="left" bgcolor="#0b0b0c" style="padding:28px 36px 0 36px;background:#0b0b0c;">
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:16px;letter-spacing:2px;color:#ffffff;font-weight:bold;text-transform:uppercase;">Niles West Junior Wolves</div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:1.6px;color:#a1a1aa;text-transform:uppercase;padding-top:5px;">Powered by Triumph Hoops Academy</div>
+    </td></tr>
+
+    <tr><td class="jw-pad" style="padding:18px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="3" bgcolor="#c8102e" width="56" style="height:3px;line-height:3px;font-size:3px;background:#c8102e;width:56px;">&nbsp;</td>
+        <td height="3" bgcolor="#2a2a2f" style="height:3px;line-height:3px;font-size:3px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:26px 36px 0 36px;">
+      <div class="jw-display jw-h1" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:32px;line-height:36px;color:#ffffff;text-transform:uppercase;letter-spacing:-0.3px;">
+        Your October 11<br>clinic time has changed
+      </div>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">
+      <p style="margin:0 0 16px 0;">You RSVPed for our October 11 clinic while it was listed as <strong style="color:#ffffff;">12:00&ndash;2:00 PM</strong>. We&rsquo;ve since split the clinic into two grade-based sessions so the groups stay small enough to coach properly.</p>
+      OCT11_MULTI_NOTE
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:10px 36px 0 36px;">
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:2px;color:#a1a1aa;text-transform:uppercase;font-weight:bold;padding-bottom:12px;">Your athlete&rsquo;s session</div>
+      OCT11_SESSION_BLOCKS
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:10px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#17171a" style="background:#17171a;">
+        <tr><td style="padding:20px 22px;border-left:3px solid #2a2a2f;">
+          <div class="jw-display" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;color:#ffffff;text-transform:uppercase;">Sunday, October 11, 2026</div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#e4e4e7;padding-top:10px;"><strong style="color:#ffffff;text-transform:uppercase;letter-spacing:0.5px;">Niles West High School</strong><br>5701 Oakton St<br>Skokie, IL 60077</div>
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">
+      <p style="margin:0 0 16px 0;">Please use the time above rather than the 12:00&ndash;2:00 PM time shown when you RSVPed.</p>
+      <p style="margin:0;"><strong style="color:#ffffff;">No action is needed</strong> &mdash; your athlete&rsquo;s RSVP is still confirmed. We just want to be sure you have the right arrival time.</p>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:26px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;">
+      <div style="font-size:10px;line-height:14px;letter-spacing:2px;color:#a1a1aa;text-transform:uppercase;font-weight:bold;">What to bring</div>
+      <div style="font-size:14px;line-height:24px;color:#a1a1aa;padding-top:8px;">
+        <span style="color:#ff3b52;">&bull;</span>&nbsp; Basketball if possible<br>
+        <span style="color:#ff3b52;">&bull;</span>&nbsp; Water bottle<br>
+        <span style="color:#ff3b52;">&bull;</span>&nbsp; Basketball shoes<br>
+        <span style="color:#ff3b52;">&bull;</span>&nbsp; Any medication your athlete may need, including an inhaler if applicable
+      </div>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:24px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">
+      <p style="margin:0;">Questions? Just reply to this email.</p>
+    </td></tr>
+
+    <tr><td class="jw-pad" style="padding:30px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="1" bgcolor="#2a2a2f" style="height:1px;line-height:1px;font-size:1px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 0 36px;">
+      <img src="JW_LOGO_SRC" width="160" height="111" alt="Niles West Junior Wolves Basketball" style="display:block;width:160px;max-width:160px;height:auto;border:0;outline:none;text-decoration:none;">
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:16px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#ffffff;">
+      <div style="font-weight:bold;">Oli &amp; Marlowe</div>
+      <div style="color:#a1a1aa;font-size:14px;line-height:21px;padding-top:2px;">Junior Wolves<br>Powered by Triumph Hoops Academy</div>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 34px 36px;">
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;color:#a1a1aa;">
+        <a href="mailto:triumphhoopsacademy@gmail.com" style="color:#a1a1aa;text-decoration:underline;">triumphhoopsacademy@gmail.com</a>
+      </div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;color:#67676f;padding-top:12px;">
+        You&rsquo;re receiving this because you RSVPed an athlete for the October 11 Junior Wolves clinic.
+      </div>
+    </td></tr>
+
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+/* ---------------- Campaign 5: October 11 session-time correction ----------
+   One job: tell 13 households that the clinic they already RSVPed for now
+   starts at a different time. Nothing else is in this email - no recap, no
+   feedback ask, no second CTA - because anything competing with the time is
+   a chance to miss it.
+
+   PERSONALISED. Each household sees its own athletes and their own session,
+   derived here from grade via the clinics module, never re-derived by hand.
+   A household with athletes in both groups sees both, stated separately. */
+const CLINICS = require("../assets/js/clinics.js");
+const OCT11 = "2026-10-11";
+const OCT11FIX_SUBJECT = "Important: your athlete’s October 11 clinic time has changed";
+const OCT11FIX_TEST_SUBJECT = "TEST — Important: your athlete’s October 11 clinic time has changed";
+const OCT11FIX_PREHEADER =
+  "You RSVPed when the clinic was listed as 12:00–2:00 PM. It is now split into two grade sessions.";
+
+function esc(v) {
+  return String(v == null ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+/* Group a household's athletes by the session their grade puts them in. */
+function oct11Sessions(athletes) {
+  const groups = [];
+  (athletes || []).forEach(function (a) {
+    const grade = String(a && a.grade || "").trim();
+    const s = CLINICS.sessionFor(OCT11, grade);
+    if (!s) return;                                   /* unknown grade: skipped, never guessed */
+    let g = groups.filter(function (x) { return x.id === s.id; })[0];
+    if (!g) { g = { id: s.id, label: s.label, time: s.time, names: [] }; groups.push(g); }
+    const first = String(a && a.first || "").trim();
+    if (first && g.names.indexOf(first) === -1) g.names.push(first);
+  });
+  /* younger session always printed first */
+  groups.sort(function (a, b) { return a.id === "younger" ? -1 : b.id === "younger" ? 1 : 0; });
+  return groups;
+}
+
+function oct11SessionBlocks(groups) {
+  return groups.map(function (g) {
+    const who = g.names.length
+      ? '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#ffffff;padding-top:12px;">' +
+        esc(g.names.join(" &amp; ").replace("&amp;amp;", "&amp;")) + "</div>"
+      : "";
+    return '' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#c8102e" style="background:#c8102e;margin-bottom:14px;">' +
+      '<tr><td align="left" style="padding:22px;">' +
+      '<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;font-weight:bold;">' +
+      esc(g.label) + '</div>' +
+      '<div class="jw-display jw-time" style="font-family:\'Arial Black\',\'Arial Bold\',Arial,Helvetica,sans-serif;font-size:32px;line-height:36px;color:#ffffff;text-transform:uppercase;padding-top:8px;letter-spacing:-0.3px;">' +
+      esc(g.time) + '</div>' + who +
+      '</td></tr></table>';
+  }).join("");
+}
+
+function renderOct11Fix(household) {
+  const groups = oct11Sessions(household && household.athletes);
+  if (!groups.length) throw new Error("no resolvable session for this household");
+  const multi = groups.length > 1;
+  const html = OCT11FIX_HTML
+    .replace(/OCT11_PREHEADER/g, OCT11FIX_PREHEADER)
+    .replace(/OCT11_SESSION_BLOCKS/g, oct11SessionBlocks(groups))
+    .replace(/OCT11_MULTI_NOTE/g, multi
+      ? '<p style="margin:0 0 16px 0;">Your athletes are in different grade groups, so they have different times. Both are shown below.</p>'
+      : "")
+    .replace(/JW_LOGO_SRC/g, JW_LOGO_URL);
+  if (html.indexOf("OCT11_") !== -1) throw new Error("placeholder not replaced");
+  if (html.indexOf("Door 44") !== -1) throw new Error("Door 44 is not confirmed for October 11");
+  return html;
+}
+
+function oct11FixText(household) {
+  const groups = oct11Sessions(household && household.athletes);
+  const lines = ["NILES WEST JUNIOR WOLVES", "", "YOUR OCTOBER 11 CLINIC TIME HAS CHANGED", "",
+    "You RSVPed for our October 11 clinic while it was listed as 12:00-2:00 PM.",
+    "We have since split the clinic into two grade-based sessions so the groups",
+    "stay small enough to coach properly.", "", "YOUR ATHLETE'S SESSION:"];
+  groups.forEach(function (g) {
+    lines.push("  " + g.label + "  " + g.time + (g.names.length ? "  (" + g.names.join(" & ") + ")" : ""));
+  });
+  lines.push("", "Sunday, October 11, 2026", "Niles West High School", "5701 Oakton St, Skokie, IL 60077", "",
+    "Please use the time above rather than the 12:00-2:00 PM time shown when you RSVPed.",
+    "No action is needed - your athlete's RSVP is still confirmed.", "",
+    "WHAT TO BRING", "  Basketball if possible", "  Water bottle", "  Basketball shoes",
+    "  Any medication your athlete may need, including an inhaler if applicable", "",
+    "Questions? Reply to this email.", "", "Oli & Marlowe", "Junior Wolves",
+    "Powered by Triumph Hoops Academy");
+  return lines.join("\n");
+}
+
+/* Synthetic households for previewing and testing a personalised campaign.
+   Invented names on purpose: a test render must never carry real family data. */
+const OCT11FIX_SAMPLES = {
+  younger: { athletes: [{ first: "Jordan", grade: "5th" }] },
+  older:   { athletes: [{ first: "Casey",  grade: "7th" }] },
+  both:    { athletes: [{ first: "Jordan", grade: "5th" }, { first: "Casey", grade: "8th" }] }
+};
+
+const APPROVED_OCT11FIX_SHA256 = "12211a3e022a1cbfc332f1ab72730097b0d2579bde3d66a6d3f29129da905c27";
+const APPROVED_OCT11FIX_SIZE = 13;
+const OCT11FIX_CONFIRM = "SEND-JW-OCT11FIX-2026-09-29";
+
 /* One row per campaign. Each has its own gate, confirmation phrase and
    idempotency prefix, so no campaign's approval can unlock another, and a
    family who received an earlier campaign is never deduped against this one. */
@@ -1107,6 +1331,10 @@ function campaignConfig(name) {
   if (name === "clinic") return { render: renderClinicHtml, subject: CLINIC_SUBJECT, testSubject: CLINIC_TEST_SUBJECT,
     digest: APPROVED_CLINIC_SHA256, size: APPROVED_CLINIC_SIZE, phrase: CLINIC_CONFIRM,
     prefix: "jw-clinic-2026-09-27-", text: CLINIC_TEXT, cta: CLINIC_RSVP_URL };
+  if (name === "oct11fix") return { personalized: true, render: renderOct11Fix, text: oct11FixText,
+    subject: OCT11FIX_SUBJECT, testSubject: OCT11FIX_TEST_SUBJECT,
+    digest: APPROVED_OCT11FIX_SHA256, size: APPROVED_OCT11FIX_SIZE, phrase: OCT11FIX_CONFIRM,
+    prefix: "jw-oct11fix-2026-09-29-", cta: null };
   if (name === "dayof") return { render: renderDayofHtml, subject: DAYOF_SUBJECT, testSubject: DAYOF_TEST_SUBJECT,
     digest: APPROVED_DAYOF_SHA256, size: APPROVED_DAYOF_SIZE, phrase: DAYOF_CONFIRM,
     prefix: "jw-dayof-2026-09-27-", text: DAYOF_TEXT, cta: null };
@@ -1201,9 +1429,19 @@ module.exports = async function handler(req, res) {
   if (!RESEND_API_KEY) return res.status(500).json({ ok: false, error: "RESEND_API_KEY is not set." });
   if (!from) return res.status(500).json({ ok: false, error: "MAIL_FROM is not a usable verified sender." });
 
-  let html;
-  try { html = cfg.render(); }
-  catch (err) { return res.status(500).json({ ok: false, error: err.message }); }
+  /* A personalised campaign renders per household, so there is no single body
+     to build up front. Preview and test use a synthetic sample; the live path
+     renders inside the send loop. */
+  const sampleKey = ["younger", "older", "both"].indexOf(String(body.sample || "")) !== -1
+    ? String(body.sample) : "younger";
+  let html = null;
+  if (!cfg.personalized) {
+    try { html = cfg.render(); }
+    catch (err) { return res.status(500).json({ ok: false, error: err.message }); }
+  } else if (mode !== "live") {
+    try { html = cfg.render(OCT11FIX_SAMPLES[sampleKey]); }
+    catch (err) { return res.status(500).json({ ok: false, error: err.message }); }
+  }
 
   const subject = cfg.subject, testSubject = cfg.testSubject;
   const gateDigest = cfg.digest, gateSize = cfg.size, gatePhrase = cfg.phrase;
@@ -1217,7 +1455,7 @@ module.exports = async function handler(req, res) {
     testSubject,
     cta: cfg.cta,
     logo: JW_LOGO_URL,
-    htmlChecksum: checksum(html),
+    htmlChecksum: html ? checksum(html) : "personalized",
     engine: "resend"
   };
 
@@ -1227,9 +1465,17 @@ module.exports = async function handler(req, res) {
 
   if (mode === "test") {
     /* Hard-wired to Triumph's own inbox. This branch cannot reach a family. */
-    const result = await sendOne(MAIL_TO, testSubject, html, null, textBody);
-    console.log("[campaign] TEST send", JSON.stringify(result));
-    return res.status(result.ok ? 200 : 502).json({ ok: result.ok, mode, identity, result });
+    const to = validEmail(normEmail(body.to)) ? normEmail(body.to) : MAIL_TO;
+    /* A test may only ever be addressed to Triumph's own inboxes. */
+    const ALLOWED_TEST = [MAIL_TO.toLowerCase(), "msoriano33@gmail.com"];
+    if (ALLOWED_TEST.indexOf(to) === -1) {
+      return res.status(400).json({ ok: false, error: "test recipient not allowed" });
+    }
+    const tText = cfg.personalized ? cfg.text(OCT11FIX_SAMPLES[sampleKey]) : textBody;
+    const tSubject = cfg.personalized ? testSubject + " [" + sampleKey + "]" : testSubject;
+    const result = await sendOne(to, tSubject, html, null, tText);
+    console.log("[campaign] TEST send", sampleKey, JSON.stringify(result));
+    return res.status(result.ok ? 200 : 502).json({ ok: result.ok, mode, identity, sample: sampleKey, to, result });
   }
 
   if (mode === "live") {
@@ -1240,7 +1486,11 @@ module.exports = async function handler(req, res) {
     /* The caller presents the WHOLE approved audience every time, even when
        asking for one slice of it. That way each request re-proves it is
        addressing the approved list and nothing else. */
-    const submitted = Array.isArray(body.audience) ? body.audience : [];
+    /* A personalised campaign supplies households; the gate still hashes only
+       the address set, so approval means the same thing for every campaign. */
+    const households = cfg.personalized && Array.isArray(body.recipients) ? body.recipients : null;
+    const submitted = households ? households.map(function (h) { return h && h.email; })
+                    : (Array.isArray(body.audience) ? body.audience : []);
     const clean = [];
     let skippedInvalid = 0, skippedDuplicate = 0;
     const seen = Object.create(null);
@@ -1286,7 +1536,14 @@ module.exports = async function handler(req, res) {
       const to = slice[i];
       const key = idemPrefix +
                   crypto.createHash("sha256").update(to, "utf8").digest("hex").slice(0, 32);
-      const r = await sendOne(to, subject, html, key, textBody);
+      let body_html = html, body_text = textBody;
+      if (cfg.personalized) {
+        const hh = households.filter(function (h) { return normEmail(h.email) === to; })[0];
+        if (!hh) { results.push({ index: offset + i, ok: false, status: 400, detail: "no household" }); continue; }
+        try { body_html = cfg.render(hh); body_text = cfg.text(hh); }
+        catch (e) { results.push({ index: offset + i, ok: false, status: 500, detail: e.message }); continue; }
+      }
+      const r = await sendOne(to, subject, body_html, key, body_text);
       /* Report by position, never by address, so results can be pasted around
          without spreading family email addresses. */
       results.push({ index: offset + i, ok: r.ok, id: r.id || null,
