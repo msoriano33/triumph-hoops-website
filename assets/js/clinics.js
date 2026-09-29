@@ -50,15 +50,22 @@
 
          The split is always 3rd-6th first, 7th-8th second. 6th grade belongs
          to the YOUNGER session and 7th grade to the OLDER one - that boundary
-         is the thing most easily got wrong, so it is asserted in the tests. */
+         is the thing most easily got wrong, so it is asserted in the tests.
+
+       ENTRANCE
+         `entrance` is which door families should use, and it stays null until
+         somebody has actually confirmed it for that specific date. The
+         logistics and event-day emails print it only when it is set, and the
+         renderers refuse to invent one. On 2026-09-27 an unverified "Door 44"
+         nearly shipped to every attending family; a null here is the fix. */
     clinics: [
-      { id: "2026-09-27", weekday: "Sunday", date: "September 27", ordinal: "September 27th", short: "Sun, Sept 27", time: "3:00–5:00 PM",   end: "17:00" },
-      { id: "2026-10-11", weekday: "Sunday", date: "October 11",   ordinal: "October 11th",   short: "Sun, Oct 11",  time: "11:00 AM–2:00 PM", end: "14:00",
+      { id: "2026-09-27", weekday: "Sunday", date: "September 27", ordinal: "September 27th", short: "Sun, Sept 27", time: "3:00–5:00 PM",   end: "17:00", year: 2026, entrance: null },
+      { id: "2026-10-11", weekday: "Sunday", date: "October 11",   ordinal: "October 11th",   short: "Sun, Oct 11",  time: "11:00 AM–2:00 PM", end: "14:00", year: 2026, entrance: null,
         sessions: [
           { id: "younger", label: "3rd–6th Grade", grades: ["3rd", "4th", "5th", "6th"], time: "11:00 AM–12:30 PM", start: "11:00", end: "12:30" },
           { id: "older",   label: "7th–8th Grade", grades: ["7th", "8th"],               time: "12:30–2:00 PM",     start: "12:30", end: "14:00" }
         ] },
-      { id: "2026-10-25", weekday: "Sunday", date: "October 25",   ordinal: "October 25th",   short: "Sun, Oct 25",  time: "3:00–6:00 PM",   end: "18:00",
+      { id: "2026-10-25", weekday: "Sunday", date: "October 25",   ordinal: "October 25th",   short: "Sun, Oct 25",  time: "3:00–6:00 PM",   end: "18:00", year: 2026, entrance: null,
         sessions: [
           { id: "younger", label: "3rd–6th Grade", grades: ["3rd", "4th", "5th", "6th"], time: "3:00–4:30 PM", start: "15:00", end: "16:30" },
           { id: "older",   label: "7th–8th Grade", grades: ["7th", "8th"],               time: "4:30–6:00 PM", start: "16:30", end: "18:00" }
@@ -102,6 +109,36 @@
     var s = JW_CLINICS.sessionFor(clinicId, grade);
     var head = c.weekday + ", " + c.date;
     return s ? head + " · " + s.label + " · " + s.time : head + " · " + c.time;
+  };
+
+  /* The next clinic that has not finished yet, in Chicago time - the one an
+     RSVP CTA should point at. `asOf` is "YYYY-MM-DD HH:MM" and is supplied by
+     the caller so the server and the page can agree; omit it and the local
+     clock is used. Returns null when the season is over, and every caller must
+     handle that rather than assuming a clinic exists. */
+  JW_CLINICS.nextClinic = function (asOf) {
+    var now = asOf || (function () {
+      try {
+        var p = {};
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", hour12: false
+        }).formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+        return p.year + "-" + p.month + "-" + p.day + " " + (p.hour === "24" ? "00" : p.hour) + ":" + p.minute;
+      } catch (e) {
+        return new Date().toISOString().slice(0, 16).replace("T", " ");
+      }
+    })();
+    var upcoming = JW_CLINICS.clinics.filter(function (c) { return c.id + " " + c.end > now; });
+    upcoming.sort(function (a, b) { return a.id < b.id ? -1 : 1; });
+    return upcoming.length ? upcoming[0] : null;
+  };
+
+  /* "Sunday, October 11, 2026" - one spelling, everywhere. */
+  JW_CLINICS.longDate = function (clinicId) {
+    var c = JW_CLINICS.clinicById(clinicId);
+    if (!c) return "";
+    return c.weekday + ", " + c.date + (c.year ? ", " + c.year : "");
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = JW_CLINICS;
