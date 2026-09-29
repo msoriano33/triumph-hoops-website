@@ -50,14 +50,28 @@ function mrHeaderIndex_(sheet) {
 /* Full name in MASTER REGISTRATIONS is one field. Split off the last token as
    the surname, which is what the check-in sheets and CLINIC RSVP use. */
 function splitFull_(full) {
-  var parts = String(full == null ? '' : full).replace(/\s+/g, ' ').trim().split(' ');
+  /* Strip a parenthetical nickname before splitting. MASTER REGISTRATIONS
+     holds this athlete twice, as "Vincent Dalmacio (Vinny)" and
+     "Vincent (Vinny) Dalmacio". Without this both fail to match the real
+     name and a genuinely registered family is pushed onto the long form.
+     Removing the parenthetical does not loosen matching between different
+     people - Vinny still will not match Vincent. */
+  var parts = String(full == null ? '' : full)
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\s+/g, ' ').trim().split(' ');
   if (parts.length < 2) return { first: parts[0] || '', last: '' };
   return { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] };
 }
 
 function lookupToken_(submissionId, clinicId) {
   var raw = String(submissionId) + '|' + String(clinicId);
-  var sig = Utilities.computeHmacSha256Signature(raw, SHEETS_WEBHOOK_SECRET);
+  /* Unkeyed on purpose. Code.gs declares the webhook secret with const, which
+     Apps Script scopes to that file, and reaching it would mean editing the
+     live RSVP writer. It is not needed here: this token is a consistency
+     check, not an authenticity proof. The real gate is that the server
+     re-resolves the athlete from name + grade and refuses anything that is
+     not a unique match, and the response never carries PII. */
+  var sig = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, raw);
   return Utilities.base64EncodeWebSafe(sig).slice(0, 32);
 }
 
@@ -95,9 +109,14 @@ function clinicLookup_(body) {
     var sp = splitFull_(full);
     var rowLast = cLast != null && r[cLast] ? r[cLast] : sp.last;
     /* Both names must match exactly after normalising. No prefix or fuzzy
-       matching: that is what produced the Qasim false positive. */
+       matching: that is what produced the Qasim false positive.
+       The surname is accepted from EITHER the Player Last Name column or the
+       last token of the full name. Those disagree in real rows - Vincent
+       Dalmacio is filed twice with a nickname in different positions - and a
+       registered family should not be pushed onto the long form over it. */
     if (mrNorm_(sp.first) !== wantFirst) continue;
-    if (mrNorm_(rowLast) !== wantLast) continue;
+    var lastCandidates = [mrNorm_(splitFull_(rowLast).last || rowLast), mrNorm_(rowLast), mrNorm_(sp.last)];
+    if (lastCandidates.indexOf(wantLast) === -1) continue;
 
     var key = wantFirst + '|' + wantLast + '|' + mrGrade_(r[cGrade]);
     if (byKey[key]) continue;                       /* first row wins */
