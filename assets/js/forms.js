@@ -127,7 +127,7 @@
     status.setAttribute("role", "status");
   }
 
-  function succeed(form) {
+  function succeed(form, payload) {
     var wrap = form.closest(".form-wrap") || form;
     var name = form.getAttribute("data-success-heading") || "Thanks for reaching out to Triumph.";
     var body = form.getAttribute("data-success-body") ||
@@ -144,6 +144,15 @@
 
     var focusTarget = document.getElementById(form.id + "-success");
     if (focusTarget) focusTarget.focus();
+
+    /* Optional hand-off. A page may register window.JW_AFTER_SUBMIT to add a
+       step after a confirmed submission - today, offering a clinic RSVP to a
+       family that just registered for tryouts. It runs after the success state
+       is already on screen, and a throw here can never undo that. */
+    if (typeof window.JW_AFTER_SUBMIT === "function") {
+      try { window.JW_AFTER_SUBMIT(form, wrap, payload || {}); }
+      catch (e) { /* the submission stands regardless */ }
+    }
   }
 
   function handle(form) {
@@ -213,7 +222,7 @@
           /* Success ONLY when the server confirms the email was accepted.
              A 200 without delivered:true is still a failure. */
           if (result.ok && result.body && result.body.delivered === true) {
-            succeed(form);
+            succeed(form, payload);
             return;
           }
 
