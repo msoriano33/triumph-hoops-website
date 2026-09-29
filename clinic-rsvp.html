@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/styles.css?v=20260929b">
+<link rel="stylesheet" href="assets/css/styles.css?v=20260929c">
 <script>document.documentElement.className += " js";</script>
 </head>
 
@@ -99,6 +99,77 @@
           player&rsquo;s name, grade and age, and the clinic date.</p>
         </noscript>
 
+        <!-- STEP 1. One question, asked before any typing. A family already in
+             MASTER REGISTRATIONS can confirm an athlete instead of retyping
+             them; a family that is not can register and RSVP in one pass.
+             Neither branch is ever a dead end - the full form below is always
+             one tap away. -->
+        <div class="stack" data-cr-step="start" hidden>
+          <div class="field">
+            <label class="label" for="cr-start-clinic">Clinic</label>
+            <select class="select" id="cr-start-clinic"></select>
+          </div>
+
+          <p class="eyebrow jw-rsvp-group" style="margin-bottom:.25rem">One question first</p>
+          <h2 class="h4" style="margin:0">Has this player already registered for Junior Wolves tryouts?</h2>
+          <p class="small muted" style="margin:0">
+            If so, we can pull their information up so you only have to confirm it.
+          </p>
+
+          <button class="btn btn--primary btn--block" type="button" data-cr-go="lookup">Yes &mdash; already registered</button>
+          <button class="btn btn--outline btn--block" type="button" data-cr-go="notyet">No, or not sure</button>
+        </div>
+
+        <!-- STEP 2A. Lookup. Three fields, exact match only. Anything other
+             than one confident hit falls through to the full form. -->
+        <div class="stack" data-cr-step="lookup" hidden>
+          <p class="eyebrow jw-rsvp-group" style="margin-bottom:.25rem">Find your player</p>
+          <h2 class="h4" style="margin:0">Enter their name exactly as you registered it.</h2>
+
+          <div class="field-row">
+            <div class="field">
+              <label class="label" for="cl-first">First name</label>
+              <input class="input" id="cl-first" type="text" autocomplete="off" autocapitalize="words">
+            </div>
+            <div class="field">
+              <label class="label" for="cl-last">Last name</label>
+              <input class="input" id="cl-last" type="text" autocomplete="off" autocapitalize="words">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="cl-grade">Grade</label>
+            <select class="select" id="cl-grade"></select>
+          </div>
+
+          <button class="btn btn--primary btn--block" type="button" data-cr-find>Find my player</button>
+          <div class="form-status" data-cr-lookup-status aria-live="polite"></div>
+          <p class="small muted" style="margin:0">
+            <button class="linkbtn" type="button" data-cr-go="form">Skip this &mdash; fill in the RSVP myself</button>
+          </p>
+        </div>
+
+        <!-- STEP 2B. Not registered for tryouts. The clinic is open to any
+             district family, so "just RSVP" stays a first-class choice. -->
+        <div class="stack" data-cr-step="notyet" hidden>
+          <p class="eyebrow jw-rsvp-group" style="margin-bottom:.25rem">Not registered yet</p>
+          <h2 class="h4" style="margin:0">You can do both in one pass.</h2>
+          <p class="small" data-cr-notyet-copy></p>
+
+          <a class="btn btn--primary btn--block" data-cr-register href="junior-wolves.html#register">Register for tryouts</a>
+          <button class="btn btn--outline btn--block" type="button" data-cr-go="form">Just RSVP for the clinic</button>
+          <p class="small muted" style="margin:0">
+            The clinic is free and open to any 3rd&ndash;8th grade boy in the district.
+            Tryout registration is not required to attend.
+          </p>
+        </div>
+
+        <!-- STEP 3. Confirm card for a matched athlete. -->
+        <div class="stack" data-cr-step="confirm" hidden></div>
+
+        <!-- STEP 4 / FALLBACK. Deliberately NOT hidden in the markup: if the
+             funnel script fails to load or throws, this form is what the family
+             sees, exactly as it worked on Sept 27. The script hides it only
+             once it has successfully taken over. -->
         <form id="form-clinic-rsvp" action="/api/clinic-rsvp" method="post" novalidate>
           <div class="hp" aria-hidden="true">
             <label for="cr-company">Company</label>
@@ -110,7 +181,7 @@
             <select class="select" id="cr-clinic" name="clinic" required></select>
           </div>
 
-          <p class="eyebrow jw-rsvp-group">Player</p>
+          <p class="eyebrow jw-rsvp-group">Player &mdash; the athlete attending</p>
           <div class="field-row">
             <div class="field">
               <label class="label" for="cr-first">First name</label>
@@ -138,7 +209,7 @@
             <input class="input" id="cr-school" name="school" type="text" autocomplete="off" required>
           </div>
 
-          <p class="eyebrow jw-rsvp-group">Parent / guardian</p>
+          <p class="eyebrow jw-rsvp-group">Parent / guardian &mdash; the adult we should contact</p>
           <div class="field-row">
             <div class="field">
               <label class="label" for="cr-parent">Name</label>
@@ -217,8 +288,8 @@
 
 <script src="assets/js/site-data.js?v=20260922a"></script>
 <script src="assets/js/main.js?v=20260922a"></script>
-<script src="assets/js/clinics.js?v=20260929a"></script>
-<script src="assets/js/clinic-rsvp.js?v=20260922d"></script>
+<script src="assets/js/clinics.js?v=20260929c"></script>
+<script src="assets/js/clinic-rsvp.js?v=20260929c"></script>
 <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </body>
 </html>
