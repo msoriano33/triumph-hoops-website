@@ -1550,7 +1550,7 @@ function renderSept27B() {
   const body = [
     jwProse(`<p style="margin:0 0 16px 0;">On September 27 we ran our first open Junior Wolves clinic at Niles West. <strong style="color:#ffffff;">${S27_ATTENDED} athletes</strong> came through the gym, 3rd through 8th grade, from across the district.</p>
       <p style="margin:0 0 16px 0;">It was a real practice, not a showcase. Ball handling under pressure, shooting off the catch, closeouts, and live work where coaches stopped play to fix spacing and decision-making rather than letting it run. That is how we intend to keep doing these.</p>
-      <p style="margin:0;">The next one is October 11, and it is open to any boy in grades 3rd&ndash;8th. No tryout registration, no roster spot, no cost.</p>`),
+      <p style="margin:0;">The next one is October 11, and it is open to any boy in grades 3rd&ndash;8th. No roster spot required. No cost. Just RSVP for the clinic so we can plan the groups.</p>`),
 
     jwProse(`<p style="margin:0;"><strong style="color:#ffffff;">One change from the first clinic.</strong> Running every grade at once meant the range in the gym was too wide to coach well at either end, so October 11 runs as two grade-based sessions with smaller groups.</p>`),
 
@@ -1588,8 +1588,8 @@ const S27B_TEXT = [
   "It was a real practice, not a showcase. Ball handling under pressure,",
   "shooting off the catch, closeouts, and live work where coaches stopped play",
   "to fix spacing and decision-making.", "",
-  "The next one is October 11, open to any boy in grades 3rd-8th. No tryout",
-  "registration, no roster spot, no cost.", "",
+  "The next one is October 11, open to any boy in grades 3rd-8th. No roster",
+  "spot required. No cost. Just RSVP for the clinic so we can plan the groups.", "",
   "SUNDAY, OCTOBER 11",
   "  3rd-6th Grade   11:00 AM-12:30 PM",
   "  7th-8th Grade   12:30-2:00 PM",
