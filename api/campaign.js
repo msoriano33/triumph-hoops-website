@@ -1599,15 +1599,22 @@ const S27B_TEXT = [
   "Oli & Marlowe", "Junior Wolves", "Powered by Triumph Hoops Academy"
 ].join("\n");
 
-/* Audience gates. Both are left UNSET on purpose: the approved address sets
-   are recomputed immediately before the send and pasted in here, so a live
-   send is impossible until a human has seen the final count. */
-const APPROVED_S27A_SHA256 = "";
-const APPROVED_S27A_SIZE = 0;
+/* Audience gates, recomputed live from CLINIC RSVP + MASTER REGISTRATIONS at
+   2026-09-29 07:5x CT, immediately before presenting them for approval.
+
+     A  89  Sept 27 athletes marked Present, collapsed to households
+     B  68  everyone else in the master audience (157 total, overlap 0)
+
+   Rows marked QA TEST / QA VERIFY / DO NOT COUNT and Triumph's own inboxes
+   are excluded from both. If a single family registers or RSVPs between now
+   and the send, the digest stops matching and the endpoint refuses until the
+   list is recomputed and re-approved. That is the gate working. */
+const APPROVED_S27A_SHA256 = "3d6c1be620a28b6a6215e1486c3f05b0a884d2f61985dc122b27f5ca95bcf7ae";
+const APPROVED_S27A_SIZE = 89;
 const S27A_CONFIRM = "SEND-JW-SEPT27A-2026-09-29";
 
-const APPROVED_S27B_SHA256 = "";
-const APPROVED_S27B_SIZE = 0;
+const APPROVED_S27B_SHA256 = "3d5bf359a1445c6d25097cf41a078ffeec2131ff546320265660a283aef2d145";
+const APPROVED_S27B_SIZE = 68;
 const S27B_CONFIRM = "SEND-JW-SEPT27B-2026-09-29";
 
 /* One row per campaign. Each has its own gate, confirmation phrase and
