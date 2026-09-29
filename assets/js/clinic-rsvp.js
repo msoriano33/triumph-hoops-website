@@ -193,8 +193,16 @@
     btn.disabled = true; btn.textContent = "Looking…";
     lookupStatus("ok", "Checking our registration list…");
 
+    /* Measured live 2026-09-29: a warm lookup answers in about 4 s, but the
+       first one after the Apps Script has gone cold takes far longer. Twelve
+       seconds sent real matches to the fallback form, so: a generous ceiling
+       and a line of reassurance while they wait. */
     var controller = typeof AbortController === "function" ? new AbortController() : null;
-    var timer = setTimeout(function () { if (controller) controller.abort(); }, 12000);
+    var timer = setTimeout(function () { if (controller) controller.abort(); }, 25000);
+    var slow = setTimeout(function () {
+      lookupStatus("ok", "Still checking &mdash; our registration list can take a few seconds to wake up.");
+    }, 5000);
+    function done() { clearTimeout(timer); clearTimeout(slow); }
 
     fetch("/api/clinic-lookup", {
       method: "POST",
@@ -204,7 +212,7 @@
     })
       .then(function (r) { return r.json().catch(function () { return {}; }); })
       .then(function (b) {
-        clearTimeout(timer);
+        done();
         btn.disabled = false; btn.textContent = label;
         if (b && b.ok && b.match === "one" && b.athlete && b.token) { lookupStatus("", ""); renderConfirm(b); return; }
         /* none / many / unavailable / anything unexpected -> the full form. */
@@ -213,7 +221,7 @@
           : "<strong>We couldn’t find that player on our registration list.</strong><br>No problem &mdash; fill this in and we’ll add the RSVP.");
       })
       .catch(function () {
-        clearTimeout(timer);
+        done();
         btn.disabled = false; btn.textContent = label;
         fallToForm("<strong>Our lookup didn’t answer just now.</strong><br>Fill this in instead &mdash; your RSVP will save the same way.");
       });
