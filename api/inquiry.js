@@ -34,6 +34,8 @@ const FALLBACK_FROM = "Triumph Website <onboarding@resend.dev>";
 const RESEND_URL = "https://api.resend.com/emails";
 
 const crypto = require("crypto");
+const TRYOUT_CONFIRMATION = require("../lib/tryout-confirmation.js");
+const JW = require("../lib/jw-email.js");
 
 /* --------------------------------------------------------------------------
    GOOGLE SHEET LOGGING (Junior Wolves registration master database)
@@ -393,6 +395,42 @@ async function logToSheet(fields, submissionId) {
            error: "sheet timed out twice; the write may still have completed" };
 }
 
+/* Does this athlete ALREADY have a live RSVP for the clinic we are about to
+   offer? The confirmation email must never invite a family to do something
+   they have done, and must never claim an RSVP they do not have - so this is
+   read from live data, and a failure returns null (unknown) rather than a
+   guess. The lookup is the same read-only one the RSVP funnel uses. */
+async function clinicRsvpState(fields, clinicId) {
+  if (!clinicId || !SHEETS_WEBHOOK_URL || !SHEETS_WEBHOOK_SECRET) return null;
+  const name = splitName(fields.player_name);
+  if (!name.first || !name.last) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(SHEETS_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        kind: "clinic_lookup", secret: SHEETS_WEBHOOK_SECRET,
+        clinicId: clinicId, first: name.first, last: name.last,
+        grade: clean(fields.player_grade, 60)
+      })
+    });
+    if (!response.ok) return null;
+    const data = await response.json().catch(() => null);
+    if (!data || data.ok !== true) return null;
+    /* Only a confident single match can tell us anything. Anything else
+       leaves the state unknown, and the email simply invites. */
+    if (data.match !== "one") return false;
+    return !!data.alreadyRsvpd;
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function postToSheetOnce(payload, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -601,6 +639,39 @@ module.exports = async function handler(req, res) {
     email = { sent: false, code: err.code || "error", message: err.message };
   }
 
+  /* ---- AUTOMATIC TRYOUT CONFIRMATION -------------------------------------
+     Permanent, for every successful tryout registration from here on.
+
+     Sent only when the sheet confirmed a genuinely NEW row. A retried or
+     duplicate submission returns duplicate:true and sends nothing, so a
+     family who double-taps gets one confirmation, not two. An unconfirmed
+     (timed-out) write sends nothing either: we do not confirm what we cannot
+     see. The Resend idempotency key is the Submission ID, which is a second,
+     independent guard.
+
+     Any failure here is logged and swallowed. The registration is already
+     captured, and no email outcome may change what the family is told. */
+  let tryoutConfirmation = "skipped";
+  if (fields.source === "junior_wolves_tryout" && sheet.logged && !sheet.duplicate) {
+    const next = JW.CLINICS.nextClinic();
+    const clinicId = next ? next.id : null;
+    const alreadyRsvpd = await clinicRsvpState(fields, clinicId);
+    const out = await TRYOUT_CONFIRMATION.send({
+      to: clean(fields.parent_email, 200),
+      first: splitName(fields.player_name).first,
+      grade: clean(fields.player_grade, 60),
+      clinicId: clinicId,
+      clinicRsvp: alreadyRsvpd,
+      submissionId: submissionId
+    });
+    tryoutConfirmation = out.sent
+      ? ("sent/" + (clinicId || "no-clinic") + "/" + (alreadyRsvpd === true ? "already-rsvpd"
+          : alreadyRsvpd === false ? "invite" : "state-unknown"))
+      : ("not-sent:" + (out.reason || "unknown"));
+    if (!out.sent) console.error("[inquiry] tryout confirmation", submissionId, tryoutConfirmation, out.detail || "");
+    else console.log("[inquiry] tryout confirmation", submissionId, tryoutConfirmation);
+  }
+
   /* ---- one clear server-side line per outcome, for diagnosis ---- */
   const tag = "| id: " + submissionId + " | source: " + fields.source + " | " + who;
   if (email.sent && sheet.logged) {
@@ -630,7 +701,8 @@ module.exports = async function handler(req, res) {
       delivered: true,
       submissionId: submissionId,
       emailDelivered: email.sent,
-      sheetLogged: !!sheet.logged
+      sheetLogged: !!sheet.logged,
+      confirmation: tryoutConfirmation
     });
   }
 
@@ -652,3 +724,4 @@ module.exports.sendEmail = sendEmail;
 module.exports.logToSheet = logToSheet;
 module.exports.newSubmissionId = newSubmissionId;
 module.exports.splitName = splitName;
+module.exports.clinicRsvpState = clinicRsvpState;
