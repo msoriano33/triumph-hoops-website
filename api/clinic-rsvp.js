@@ -14,6 +14,22 @@
 
    Clinic schedule comes from assets/js/clinics.js — the same file the RSVP
    page reads — so the page and the server cannot disagree.
+
+   TWO WAYS IN, ONE WRITER
+     1. FULL FORM   — the family types everything. Unchanged since Sept 27.
+     2. MATCHED     — the funnel already found the athlete in MASTER
+                      REGISTRATIONS and holds a server-issued token. The
+                      browser sends the token, not a row; the Apps Script
+                      re-does the lookup, re-checks the token, reads school /
+                      parent name / parent email from the sheet itself, and
+                      then calls the SAME writer. School and parent details
+                      never travel through the browser on this path.
+     Without `match_token` this file behaves exactly as it did before.
+
+   CONFIRMATION EMAIL
+     One is sent after — and only after — the sheet confirms a genuinely NEW
+     row. Retries, duplicates and already-RSVPed athletes send nothing. Email
+     failure is logged and swallowed: the RSVP is already saved.
    ========================================================================== */
 
 "use strict";
@@ -22,6 +38,7 @@ const crypto = require("crypto");
 const https = require("https");
 const http = require("http");
 const CLINICS = require("../assets/js/clinics.js");
+const CONFIRMATION = require("../lib/rsvp-confirmation.js");
 
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
@@ -42,6 +59,9 @@ const SHEET_TIMEOUT_MS = 10000;
 const ECHO_FIRST_MS = 6000;
 const SHEET_CONFIRM_MS = 10000;
 const RSVP_ID_RE = /^CR-2026-[0-9A-F]{8}$/;
+/* Opaque server-issued lookup token. Shape only - the Apps Script is the
+   authority on whether it actually resolves to an athlete. */
+const MATCH_TOKEN_RE = /^[A-Za-z0-9_+/=-]{16,200}$/;
 
 function clean(value, max) {
   return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max || 200);
@@ -75,6 +95,17 @@ function validate(f) {
   if (!f.school) return "School is required.";
   if (!f.parent_name) return "Parent / guardian name is required.";
   if (!validEmail(f.parent_email)) return "A valid parent email is required.";
+  if (!openClinic(f.clinic)) return "Please choose an upcoming clinic date.";
+  return null;
+}
+
+/* The matched path asks the family for nothing but a grade check and, when
+   we have no age on file, an age. Everything else is read from the sheet. */
+function validateMatched(f) {
+  if (!f.player_first) return "Player first name is required.";
+  if (!f.player_last) return "Player last name is required.";
+  if (CLINICS.grades.indexOf(f.grade) === -1) return "Please choose your player's grade.";
+  if (f.age && CLINICS.ages.indexOf(Number(f.age)) === -1) return "Please choose your player's age.";
   if (!openClinic(f.clinic)) return "Please choose an upcoming clinic date.";
   return null;
 }
@@ -173,6 +204,11 @@ function parse(raw, response, payload, trace) {
   try { data = JSON.parse(raw); } catch (e) { /* non-JSON = failure */ }
   if (!response.ok || !data.ok) return { logged: false, timedOut: false, error: "sheet " + response.status, trace: trace };
   return { logged: true, row: data.row, duplicate: !!data.duplicate, trace: trace,
+           /* Matched path only: the athlete was already on the clinic list. */
+           alreadyRsvpd: !!data.alreadyRsvpd,
+           /* Matched path only. Server-to-server, for the confirmation email.
+              Never included in the response to the browser. */
+           parentEmail: typeof data.parentEmail === "string" ? data.parentEmail : "",
            reactivated: !!data.reactivated, rsvpId: data.rsvpId || payload.rsvpId };
 }
 
@@ -204,7 +240,14 @@ module.exports = async function handler(req, res) {
     source: /^[a-z0-9_-]{1,32}$/.test(String(body.source || "")) ? String(body.source) : "web"
   };
 
-  const problem = validate(f);
+  /* MATCHED PATH. A token means the server already identified this athlete in
+     MASTER REGISTRATIONS, so school / parent name / parent email are not asked
+     for and are NOT accepted from the browser - the script reads them from the
+     sheet. Only the four things the family actually saw on the confirm card
+     are validated here. */
+  const matchToken = MATCH_TOKEN_RE.test(String(body.match_token || "")) ? String(body.match_token) : "";
+
+  const problem = matchToken ? validateMatched(f) : validate(f);
   if (problem) return res.status(400).json({ delivered: false, error: problem });
 
   if (!SHEETS_WEBHOOK_URL || !SHEETS_WEBHOOK_SECRET) {
@@ -216,7 +259,22 @@ module.exports = async function handler(req, res) {
      the confirm is keyed to the same row. Anything else gets a fresh id. */
   const rsvpId = RSVP_ID_RE.test(String(body.rsvp_id || "")) ? String(body.rsvp_id)
     : "CR-2026-" + crypto.randomBytes(4).toString("hex").toUpperCase();
-  const payload = {
+  const payload = matchToken ? {
+    secret: SHEETS_WEBHOOK_SECRET,
+    kind: "clinic_rsvp_matched",
+    token: matchToken,
+    rsvpId,
+    submittedAt: new Date().toISOString(),
+    clinicId: f.clinic,
+    clinicIds: CLINICS.clinics.map((c) => c.id),
+    /* Used to RE-RUN the lookup server-side, not to write. The script only
+       writes names it read back out of MASTER REGISTRATIONS. */
+    first: f.player_first,
+    last: f.player_last,
+    grade: f.grade,
+    age: f.age ? Number(f.age) : "",
+    source: f.source === "web" ? "funnel_matched" : f.source
+  } : {
     secret: SHEETS_WEBHOOK_SECRET,
     kind: "clinic_rsvp",
     rsvpId,
@@ -241,7 +299,7 @@ module.exports = async function handler(req, res) {
   const timing = { firstMs: firstMs, firstErr: firstErr, totalMs: Date.now() - t0, firstTrace: firstTrace, trace: result.trace };
 
   /* Log by id only — never a family's name or address. */
-  console.log("[clinic-rsvp]", rsvpId, f.clinic,
+  console.log("[clinic-rsvp]", rsvpId, f.clinic, matchToken ? "matched" : "form",
               result.logged ? (result.duplicate && result.rsvpId !== rsvpId ? "duplicate" : "logged") : ("FAILED " + result.error), JSON.stringify(timing));
 
   if (!result.logged) {
@@ -261,11 +319,37 @@ module.exports = async function handler(req, res) {
   /* A confirm call that finds OUR OWN rsvpId is this request's write, not an
      earlier RSVP — report it as new. Only a different rsvpId means the family
      had already RSVP'd. */
-  const alreadyListed = !!result.duplicate && result.rsvpId !== rsvpId;
+  /* The matched path is told outright when the athlete was already RSVPed;
+     otherwise a duplicate is only someone else's earlier row. */
+  const alreadyListed = !!result.alreadyRsvpd || (!!result.duplicate && result.rsvpId !== rsvpId);
+
+  /* Exactly one confirmation per new row. `result.duplicate` is true on every
+     confirm re-ask of our own pending write, so a slow sheet cannot produce a
+     second email. */
+  let confirmation = "skipped";
+  if (!result.duplicate && !result.alreadyRsvpd) {
+    /* Full form: the family typed the address. Matched path: the script read
+       it out of MASTER REGISTRATIONS and handed it back to us directly. */
+    const to = f.parent_email || String(result.parentEmail || "").trim().toLowerCase();
+    if (to) {
+      const sent = await CONFIRMATION.send({
+        to: to, first: f.player_first, grade: f.grade,
+        clinicId: f.clinic, rsvpId: result.rsvpId || rsvpId
+      });
+      confirmation = sent.sent ? "sent" : ("not-sent:" + (sent.reason || "unknown"));
+      if (!sent.sent) console.error("[clinic-rsvp] confirmation", rsvpId, confirmation, sent.detail || "");
+    } else {
+      confirmation = "no-address-in-request";
+    }
+  }
+  console.log("[clinic-rsvp] confirmation", rsvpId, confirmation);
+
   return res.status(200).json({ delivered: true, rsvpId: result.rsvpId,
-    duplicate: alreadyListed, reactivated: result.reactivated, clinic: f.clinic, timing: timing });
+    duplicate: alreadyListed, reactivated: result.reactivated, clinic: f.clinic,
+    confirmation: confirmation, timing: timing });
 };
 
 module.exports.chicagoNow = chicagoNow;
 module.exports.openClinic = openClinic;
 module.exports.validate = validate;
+module.exports.validateMatched = validateMatched;

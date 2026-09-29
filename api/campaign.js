@@ -1324,6 +1324,292 @@ const APPROVED_OCT11FIX_SHA256 = "12211a3e022a1cbfc332f1ab72730097b0d2579bde3d66
 const APPROVED_OCT11FIX_SIZE = 13;
 const OCT11FIX_CONFIRM = "SEND-JW-OCT11FIX-2026-09-29";
 
+
+/* ======================= Campaigns 6 & 7: Sept 27 follow-up ================
+   Two audiences, deliberately different emails. Audience A was in the gym on
+   September 27; Audience B was not. Sending one email to both would either
+   thank people who did not come or talk past the people who did.
+
+     A  attendees  - thank, what we saw, October 11, RSVP, then feedback
+     B  community  - what happened, October 11, RSVP. No feedback ask: a
+                     family that was not there has nothing to review.
+
+   Turnout numbers below are the reconciled Sept 27 check-in count, not an
+   estimate: 113 athletes across six grades. Nothing here is rounded up.
+   ========================================================================== */
+
+const RSVP_URL = "https://www.triumphhoopsacademy.com/clinic-rsvp?source=email";
+const FEEDBACK_URL = "https://www.triumphhoopsacademy.com/clinic-feedback?source=email";
+
+/* Sept 27, reconciled from the six check-in sheets on 2026-09-28. */
+const S27_ATTENDED = 113;
+
+/* One shell, two emails. Same structure as every Junior Wolves send: black
+   field, red rule, Arial Black display, logo and signature at the bottom. */
+function jwShell(o) {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>${esc(o.title)}</title>
+<style>
+  body { margin:0 !important; padding:0 !important; width:100% !important; }
+  table { border-collapse:collapse !important; }
+  img { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+  a { text-decoration:none; }
+  .jw-display { font-family: 'Arial Black','Arial Bold',Arial,Helvetica,sans-serif; }
+  @media screen and (max-width:620px) {
+    .jw-wrap { width:100% !important; }
+    .jw-pad { padding-left:22px !important; padding-right:22px !important; }
+    .jw-h1 { font-size:28px !important; line-height:32px !important; }
+    .jw-time { font-size:24px !important; line-height:28px !important; }
+  }
+  @media (prefers-color-scheme: light) { .jw-shell { background:#0b0b0c !important; } }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#000000;">
+
+<div style="display:none;font-size:1px;color:#000000;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+  ${esc(o.preheader)}
+  &#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="background:#000000;">
+<tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" class="jw-wrap jw-shell" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#0b0b0c" style="width:600px;max-width:600px;background:#0b0b0c;">
+
+    <tr><td class="jw-pad" align="left" bgcolor="#0b0b0c" style="padding:28px 36px 0 36px;background:#0b0b0c;">
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:16px;letter-spacing:2px;color:#ffffff;font-weight:bold;text-transform:uppercase;">Niles West Junior Wolves</div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:1.6px;color:#a1a1aa;text-transform:uppercase;padding-top:5px;">Powered by Triumph Hoops Academy</div>
+    </td></tr>
+
+    <tr><td class="jw-pad" style="padding:18px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="3" bgcolor="#c8102e" width="56" style="height:3px;line-height:3px;font-size:3px;background:#c8102e;width:56px;">&nbsp;</td>
+        <td height="3" bgcolor="#2a2a2f" style="height:3px;line-height:3px;font-size:3px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:26px 36px 0 36px;">
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:2px;color:#ff3b52;text-transform:uppercase;font-weight:bold;padding-bottom:10px;">${esc(o.eyebrow)}</div>
+      <div class="jw-display jw-h1" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:32px;line-height:36px;color:#ffffff;text-transform:uppercase;letter-spacing:-0.3px;">
+        ${o.h1}
+      </div>
+    </td></tr>
+
+    ${o.body}
+
+    <tr><td class="jw-pad" style="padding:30px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td height="1" bgcolor="#2a2a2f" style="height:1px;line-height:1px;font-size:1px;background:#2a2a2f;">&nbsp;</td>
+      </tr></table>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 0 36px;">
+      <img src="${JW_LOGO_URL}" width="160" height="111" alt="Niles West Junior Wolves Basketball" style="display:block;width:160px;max-width:160px;height:auto;border:0;outline:none;text-decoration:none;">
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:16px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#ffffff;">
+      <div style="font-weight:bold;">Oli &amp; Marlowe</div>
+      <div style="color:#a1a1aa;font-size:14px;line-height:21px;padding-top:2px;">Junior Wolves<br>Powered by Triumph Hoops Academy</div>
+    </td></tr>
+
+    <tr><td class="jw-pad" align="left" style="padding:22px 36px 34px 36px;">
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;color:#a1a1aa;">
+        <a href="mailto:triumphhoopsacademy@gmail.com" style="color:#a1a1aa;text-decoration:underline;">triumphhoopsacademy@gmail.com</a>
+      </div>
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;color:#67676f;padding-top:12px;">
+        ${esc(o.footnote)}
+      </div>
+    </td></tr>
+
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+function jwProse(html) {
+  return `<tr><td class="jw-pad" align="left" style="padding:22px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:23px;color:#e4e4e7;">${html}</td></tr>`;
+}
+
+function jwButton(href, label) {
+  return `<tr><td class="jw-pad" align="left" style="padding:26px 36px 0 36px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td bgcolor="#c8102e" style="background:#c8102e;">
+          <a href="${href}" style="display:block;padding:15px 30px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:18px;font-weight:bold;letter-spacing:1.4px;text-transform:uppercase;color:#ffffff;text-decoration:none;">${esc(label)}</a>
+        </td>
+      </tr></table>
+    </td></tr>`;
+}
+
+/* The two October 11 sessions, read from clinics.js so this email cannot
+   disagree with the RSVP page or the correction we already sent. */
+function oct11SessionTable() {
+  const c = CLINICS.clinicById(OCT11);
+  const rows = c.sessions.map(function (s) {
+    return `<tr><td style="padding:16px 22px;border-left:3px solid #c8102e;">
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:15px;letter-spacing:1.6px;color:#a1a1aa;text-transform:uppercase;font-weight:bold;">${esc(s.label)}</div>
+        <div class="jw-display jw-time" style="font-family:'Arial Black','Arial Bold',Arial,Helvetica,sans-serif;font-size:26px;line-height:30px;color:#ffffff;padding-top:5px;text-transform:uppercase;">${esc(s.time)}</div>
+      </td></tr>`;
+  }).join('<tr><td style="padding:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td height="1" bgcolor="#2a2a2f" style="height:1px;line-height:1px;font-size:1px;background:#2a2a2f;">&nbsp;</td></tr></table></td></tr>');
+
+  return `<tr><td class="jw-pad" align="left" style="padding:22px 36px 0 36px;">
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;letter-spacing:2px;color:#a1a1aa;text-transform:uppercase;font-weight:bold;padding-bottom:12px;">Two grade sessions &middot; ${esc(c.weekday)}, ${esc(c.date)}</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#17171a" style="background:#17171a;">${rows}</table>
+    </td></tr>
+    <tr><td class="jw-pad" align="left" style="padding:12px 36px 0 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#17171a" style="background:#17171a;">
+        <tr><td style="padding:18px 22px;border-left:3px solid #2a2a2f;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#e4e4e7;">
+          <strong style="color:#ffffff;text-transform:uppercase;letter-spacing:0.5px;">Niles West High School</strong><br>5701 Oakton St<br>Skokie, IL 60077<br>
+          <span style="color:#a1a1aa;">Free to attend &middot; Boys, grades 3rd&ndash;8th</span>
+        </td></tr>
+      </table>
+    </td></tr>`;
+}
+
+/* -------------------------------- AUDIENCE A: families who were there ----- */
+
+const S27A_SUBJECT = "Thank you for Sunday — and here is October 11";
+const S27A_TEST_SUBJECT = "TEST — Thank you for Sunday — and here is October 11";
+const S27A_PREHEADER =
+  S27_ATTENDED + " athletes came through Niles West. The next clinic is October 11, in two grade sessions.";
+
+function renderSept27A() {
+  const body = [
+    jwProse(`<p style="margin:0 0 16px 0;">On Sunday, <strong style="color:#ffffff;">${S27_ATTENDED} athletes</strong> came through the gym at Niles West for our first open Junior Wolves clinic. Thank you for getting your son there &mdash; plenty of you drove across the district on a Sunday afternoon to do it.</p>
+      <p style="margin:0 0 16px 0;">What we will remember is not the number. It is that a gym that full stayed coachable. Groups got into lines without being asked twice. When a coach stopped a drill to fix spacing, the boys actually listened, and the correction held on the next rep. That is the part that is hard to teach and easy to lose, and your sons showed up with it.</p>
+      <p style="margin:0;">The 8th grade group was the largest in the building and also the most competitive. The 3rd and 4th graders were the loudest. Both of those are good signs.</p>`),
+
+    jwProse(`<p style="margin:0 0 16px 0;"><strong style="color:#ffffff;">One thing we are changing.</strong> Running 3rd through 8th grade at the same time meant the range in the gym was too wide to coach properly at either end. So October 11 is split into two grade-based sessions, with smaller groups and drills pitched at the right level.</p>`),
+
+    oct11SessionTable(),
+
+    jwProse(`<p style="margin:0;">RSVPs are how we set group sizes before you arrive. If your son is coming, please let us know &mdash; it takes about thirty seconds, and if he is already registered for tryouts we can look him up so you barely type anything.</p>`),
+
+    jwButton(RSVP_URL, "RSVP for October 11"),
+
+    jwProse(`<p style="margin:0 0 10px 0;color:#a1a1aa;font-size:14px;line-height:22px;">One more ask, and then we will leave you alone: <a href="${FEEDBACK_URL}" style="color:#ff3b52;text-decoration:underline;">tell us how Sunday actually went for your athlete</a>. Six questions, about a minute, and no names attached &mdash; so say what you really think. Drill difficulty, group sizes and how long we spend at each station on October 11 will come out of those answers.</p>`)
+  ].join("\n");
+
+  const html = jwShell({
+    title: "Thank you for Sunday",
+    preheader: S27A_PREHEADER,
+    eyebrow: "September 27 · Thank you",
+    h1: `${S27_ATTENDED} athletes.<br>Thank you for Sunday.`,
+    body: body,
+    footnote: "You are receiving this because your athlete attended the September 27 Junior Wolves clinic."
+  });
+
+  if (html.indexOf("/dev") !== -1) throw new Error("refusing to send: /dev URL in body");
+  if (html.indexOf("Door 44") !== -1) throw new Error("Door 44 is not confirmed for October 11");
+  if (html.indexOf("12:00") !== -1) throw new Error("superseded 12:00-2:00 time in body");
+  if (html.indexOf(FEEDBACK_URL) === -1) throw new Error("attendee email must carry the feedback CTA");
+  if (html.indexOf(RSVP_URL) === -1) throw new Error("RSVP CTA missing");
+  return html;
+}
+
+const S27A_TEXT = [
+  "NILES WEST JUNIOR WOLVES", "",
+  S27_ATTENDED + " ATHLETES. THANK YOU FOR SUNDAY.", "",
+  "On Sunday, " + S27_ATTENDED + " athletes came through the gym at Niles West for our",
+  "first open Junior Wolves clinic. Thank you for getting your son there.", "",
+  "What we will remember is not the number. It is that a gym that full stayed",
+  "coachable. Groups got into lines without being asked twice. When a coach",
+  "stopped a drill to fix spacing, the boys listened, and the correction held",
+  "on the next rep.", "",
+  "ONE THING WE ARE CHANGING",
+  "Running 3rd through 8th grade at the same time meant the range in the gym",
+  "was too wide to coach properly at either end. October 11 is split into two",
+  "grade-based sessions.", "",
+  "SUNDAY, OCTOBER 11",
+  "  3rd-6th Grade   11:00 AM-12:30 PM",
+  "  7th-8th Grade   12:30-2:00 PM",
+  "  Niles West High School, 5701 Oakton St, Skokie, IL 60077",
+  "  Free to attend. Boys, grades 3rd-8th.", "",
+  "RSVP: " + RSVP_URL, "",
+  "And if you have a minute, tell us how Sunday went for your athlete:",
+  FEEDBACK_URL,
+  "Six questions, no names attached.", "",
+  "Oli & Marlowe", "Junior Wolves", "Powered by Triumph Hoops Academy"
+].join("\n");
+
+/* -------------------------------- AUDIENCE B: the wider community --------- */
+
+const S27B_SUBJECT = "October 11: the next free Junior Wolves clinic";
+const S27B_TEST_SUBJECT = "TEST — October 11: the next free Junior Wolves clinic";
+const S27B_PREHEADER =
+  S27_ATTENDED + " athletes filled the gym on September 27. The next one is October 11, in two grade sessions.";
+
+function renderSept27B() {
+  const body = [
+    jwProse(`<p style="margin:0 0 16px 0;">On September 27 we ran our first open Junior Wolves clinic at Niles West. <strong style="color:#ffffff;">${S27_ATTENDED} athletes</strong> came through the gym, 3rd through 8th grade, from across the district.</p>
+      <p style="margin:0 0 16px 0;">It was a real practice, not a showcase. Ball handling under pressure, shooting off the catch, closeouts, and live work where coaches stopped play to fix spacing and decision-making rather than letting it run. That is how we intend to keep doing these.</p>
+      <p style="margin:0;">The next one is October 11, and it is open to any boy in grades 3rd&ndash;8th. No tryout registration, no roster spot, no cost.</p>`),
+
+    jwProse(`<p style="margin:0;"><strong style="color:#ffffff;">One change from the first clinic.</strong> Running every grade at once meant the range in the gym was too wide to coach well at either end, so October 11 runs as two grade-based sessions with smaller groups.</p>`),
+
+    oct11SessionTable(),
+
+    jwProse(`<p style="margin:0;">RSVPs are how we set group sizes before anyone arrives, so please let us know if your son is coming. If he is already registered for Junior Wolves tryouts, we can look him up and you will barely have to type anything.</p>`),
+
+    jwButton(RSVP_URL, "RSVP for October 11")
+  ].join("\n");
+
+  const html = jwShell({
+    title: "October 11 Junior Wolves clinic",
+    preheader: S27B_PREHEADER,
+    eyebrow: "Free skills clinic · October 11",
+    h1: "The first one<br>filled the gym.",
+    body: body,
+    footnote: "You are receiving this because you joined the Niles West Junior Wolves list or registered an athlete with Triumph Hoops Academy."
+  });
+
+  if (html.indexOf("/dev") !== -1) throw new Error("refusing to send: /dev URL in body");
+  if (html.indexOf("Door 44") !== -1) throw new Error("Door 44 is not confirmed for October 11");
+  if (html.indexOf("12:00") !== -1) throw new Error("superseded 12:00-2:00 time in body");
+  /* Audience B was not there. Asking them to review it would be nonsense. */
+  if (html.indexOf("clinic-feedback") !== -1) throw new Error("community email must not carry the feedback CTA");
+  if (html.indexOf(RSVP_URL) === -1) throw new Error("RSVP CTA missing");
+  return html;
+}
+
+const S27B_TEXT = [
+  "NILES WEST JUNIOR WOLVES", "",
+  "THE FIRST ONE FILLED THE GYM.", "",
+  "On September 27 we ran our first open Junior Wolves clinic at Niles West.",
+  S27_ATTENDED + " athletes came through the gym, 3rd through 8th grade, from across",
+  "the district.", "",
+  "It was a real practice, not a showcase. Ball handling under pressure,",
+  "shooting off the catch, closeouts, and live work where coaches stopped play",
+  "to fix spacing and decision-making.", "",
+  "The next one is October 11, open to any boy in grades 3rd-8th. No tryout",
+  "registration, no roster spot, no cost.", "",
+  "SUNDAY, OCTOBER 11",
+  "  3rd-6th Grade   11:00 AM-12:30 PM",
+  "  7th-8th Grade   12:30-2:00 PM",
+  "  Niles West High School, 5701 Oakton St, Skokie, IL 60077",
+  "  Free to attend. Boys, grades 3rd-8th.", "",
+  "RSVP: " + RSVP_URL, "",
+  "Oli & Marlowe", "Junior Wolves", "Powered by Triumph Hoops Academy"
+].join("\n");
+
+/* Audience gates. Both are left UNSET on purpose: the approved address sets
+   are recomputed immediately before the send and pasted in here, so a live
+   send is impossible until a human has seen the final count. */
+const APPROVED_S27A_SHA256 = "";
+const APPROVED_S27A_SIZE = 0;
+const S27A_CONFIRM = "SEND-JW-SEPT27A-2026-09-29";
+
+const APPROVED_S27B_SHA256 = "";
+const APPROVED_S27B_SIZE = 0;
+const S27B_CONFIRM = "SEND-JW-SEPT27B-2026-09-29";
+
 /* One row per campaign. Each has its own gate, confirmation phrase and
    idempotency prefix, so no campaign's approval can unlock another, and a
    family who received an earlier campaign is never deduped against this one. */
@@ -1335,6 +1621,12 @@ function campaignConfig(name) {
     subject: OCT11FIX_SUBJECT, testSubject: OCT11FIX_TEST_SUBJECT,
     digest: APPROVED_OCT11FIX_SHA256, size: APPROVED_OCT11FIX_SIZE, phrase: OCT11FIX_CONFIRM,
     prefix: "jw-oct11fix-2026-09-29-", cta: null };
+  if (name === "sept27a") return { render: renderSept27A, subject: S27A_SUBJECT, testSubject: S27A_TEST_SUBJECT,
+    digest: APPROVED_S27A_SHA256, size: APPROVED_S27A_SIZE, phrase: S27A_CONFIRM,
+    prefix: "jw-sept27a-2026-09-29-", text: S27A_TEXT, cta: RSVP_URL };
+  if (name === "sept27b") return { render: renderSept27B, subject: S27B_SUBJECT, testSubject: S27B_TEST_SUBJECT,
+    digest: APPROVED_S27B_SHA256, size: APPROVED_S27B_SIZE, phrase: S27B_CONFIRM,
+    prefix: "jw-sept27b-2026-09-29-", text: S27B_TEXT, cta: RSVP_URL };
   if (name === "dayof") return { render: renderDayofHtml, subject: DAYOF_SUBJECT, testSubject: DAYOF_TEST_SUBJECT,
     digest: APPROVED_DAYOF_SHA256, size: APPROVED_DAYOF_SIZE, phrase: DAYOF_CONFIRM,
     prefix: "jw-dayof-2026-09-27-", text: DAYOF_TEXT, cta: null };
