@@ -1,0 +1,4 @@
+#!/bin/sh
+# Blocks commits that carry family data or credentials.
+# Enable once per clone:  git config core.hooksPath .githooks
+exec python3 "$(git rev-parse --show-toplevel)/tools/privacy-scan.py"
