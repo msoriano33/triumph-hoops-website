@@ -1474,6 +1474,50 @@ button { font: inherit; color: inherit; }
   display: inline-block;
 }
 
+/* Split grade sessions (October onward). The whole-clinic window stays as
+   .clinic-time; these are the two groups inside it. */
+.clinic-sessions {
+  list-style: none;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.clinic-sessions li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-variation-settings: "wdth" 86, "wght" 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cs-grades {
+  min-width: 4.4rem;
+  color: var(--accent);
+}
+.cs-time { color: var(--fg-muted); }
+
+.clinic-status {
+  margin-top: 0.9rem;
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  font-variation-settings: "wdth" 80, "wght" 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--fg-muted);
+}
+.clinic-card.is-next {
+  border-top-width: 6px;
+}
+.clinic-card.is-next .clinic-status { color: var(--accent); }
+.clinic-card.is-past {
+  opacity: 0.55;
+  border-top-color: var(--line);
+}
+
 .clinic-foot {
   display: grid;
   gap: clamp(1.5rem, 3vw, 2.5rem);
