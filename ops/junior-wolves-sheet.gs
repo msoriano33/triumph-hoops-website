@@ -259,22 +259,18 @@ var TOWNHALL_VENUE = 'South Lobby<br>Niles West High School<br>5701 Oakton St, S
 var TOWNHALL_VIRTUAL_URL = 'https://www.canvaqr.com/RGQ6_f0uss';
 
 /* Historical Niles West feeder-feedback contacts (2025-26). These are LEADS,
-   not registrations, and are deliberately kept out of MASTER REGISTRATIONS. */
-var HISTORICAL_FEEDER = [
-'ahmedst23@gmail.com','amandaruthsharon@gmail.com','anthonymoodyii@gmail.com','basheer.hassan@gmail.com',
-'bundocjehramie@yahoo.com','carol.dominguez198502@gmail.com','cmoy33@gmail.com','cmsanti05@gmail.com',
-'cynthiaalexander48@gmail.com','dahliatamras@gmail.com','danieljurban@gmail.com','dbrown712@gmail.com',
-'desiree.jara@gmail.com','didimaric@yahoo.com','doctorsufa@gmail.com','ejchan@gmail.com',
-'elaadi17@gmail.com','gabadilla@hotmail.com','jas.reavy@gmail.com','joelarzu@gmail.com',
-'kimdurband@gmail.com','kimkre8s@gmail.com','kjensen1313@hotmail.com','konstantosp@yahoo.com',
-'korey.pressburger@gmail.com','kristynbair@gmail.com','laurapriban@gmail.com','leenahamdi909@gmail.com',
-'maya.vujosevich@gmail.com','micsne@d219.org','mlbybee@gmail.com','msroulam@gmail.com',
-'notisotiropoulos46@gmail.com','orasa1@gmail.com','p.cullen@sbcglobal.net','parwani0830@yahoo.com',
-'petesiatos@gmail.com','pramasujita@gmail.com','rsuleiman831@gmail.com','sibrahim23@yahoo.com',
-'sucrets.home@gmail.com','suzannembartels@gmail.com','syazdani8@gmail.com','taniabella1@aol.com',
-'the.alamaniacs@gmail.com','tuyen.chicagocre@gmail.com','venus.delarmente@gmail.com',
-'vm.michelle@gmail.com','youngheechos@gmail.com'
-];
+   not registrations, and are deliberately kept out of MASTER REGISTRATIONS.
+
+   THE ADDRESSES ARE NOT IN THIS FILE, AND MUST NEVER BE.
+   This repository is public. The list lives only in the private Apps Script
+   project bound to the workbook, which is where buildTownHallAudience()
+   actually runs. This file is a readable reference copy of that project; it
+   is never executed, and nothing on the website calls it.
+
+   To work with the real list, open the Apps Script project. To add a new
+   source of addresses, put it in Script Properties or a sheet tab - never in
+   source control. */
+var HISTORICAL_FEEDER = [];   /* populated only in the private project */
 
 var RSVP_HEADERS = ['Token','Parent / Family','Player','Email','Contact Source',
                     'RSVP Status','RSVP Timestamp','Email Sent At','Notes'];
