@@ -14,18 +14,29 @@
      this athlete rather than trusting a row number from the client.
 
    WHY MATCHING IS CONSERVATIVE
-     Sept 27 taught us what loose matching costs: "Kadon" vs "Kaden",
-     "Gigas" vs "Gikas", "Haranbasic" vs "Hodzic Harambasic", and a Vinny who
-     was really the Vincent already on the sheet. A near-miss that silently
-     picks the wrong athlete is worse than asking the parent one more question,
-     so anything short of exactly one confident hit returns 'none' or 'many'
-     and the funnel falls back to the full form.
+     The first clinic showed what loose matching costs. Handwritten sheets
+     produced a misspelled first name, two spellings of one surname, a surname
+     written with a syllable missing, and a nickname entered for an athlete
+     already on the roster under his full name. A near-miss that silently picks
+     the wrong athlete is worse than asking the parent one more question, so
+     anything short of exactly one confident hit returns 'none' or 'many' and
+     the funnel falls back to the full form.
+
+     Behaviours this preserves, with synthetic examples:
+       nickname in parens      "Nathaniel Ruiz (Nate)" resolves, "Nate Ruiz" does not
+       misspelled first name   "Aidan Delaney" must not match "Aiden Delaney"
+       misspelled surname      "Delany" must not match "Delaney"
+       duplicate master rows   one athlete filed three times is one candidate
+       siblings                two Ruiz athletes in different grades stay apart
+       right name wrong grade  a 5th grade lookup must not hit the 7th grader
+       accent folding          "Leon" and the accented spelling are one athlete
+       already RSVPd           a live row for that clinic short-circuits the write
    ========================================================================== */
 var MASTER_SHEET = 'MASTER REGISTRATIONS';
 
 function mrNorm_(v) {
   return String(v == null ? '' : v)
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')   /* Léo -> Leo */
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')   /* accented spellings fold to plain ASCII */
     .replace(/[^A-Za-z]/g, '')
     .toLowerCase();
 }
@@ -50,12 +61,13 @@ function mrHeaderIndex_(sheet) {
 /* Full name in MASTER REGISTRATIONS is one field. Split off the last token as
    the surname, which is what the check-in sheets and CLINIC RSVP use. */
 function splitFull_(full) {
-  /* Strip a parenthetical nickname before splitting. MASTER REGISTRATIONS
-     holds this athlete twice, as "Vincent Dalmacio (Vinny)" and
-     "Vincent (Vinny) Dalmacio". Without this both fail to match the real
-     name and a genuinely registered family is pushed onto the long form.
-     Removing the parenthetical does not loosen matching between different
-     people - Vinny still will not match Vincent. */
+  /* Strip a parenthetical nickname before splitting. One athlete can be
+     filed twice with the nickname in different positions - the shape is
+     "Nathaniel Ruiz (Nate)" in one row and "Nathaniel (Nate) Ruiz" in the
+     other. Without this both fail to match the real name and a genuinely
+     registered family is pushed onto the long form. Removing the parenthetical
+     does not loosen matching between different people: the nickname alone
+     still will not match the full first name. */
   var parts = String(full == null ? '' : full)
     .replace(/\([^)]*\)/g, ' ')
     .replace(/\s+/g, ' ').trim().split(' ');
@@ -97,8 +109,10 @@ function clinicLookup_(body) {
   if (last < 2) return { ok: true, match: 'none' };
   var rows = sheet.getRange(2, 1, last - 1, sheet.getLastColumn()).getValues();
 
-  /* Collapse the duplicate registration rows the audit found (Leo Sneed had
-     three) into one candidate per athlete, keyed by name + grade. */
+  /* Collapse duplicate registration rows into one candidate per athlete,
+     keyed by name + grade. Re-submitted registrations are common; the audit
+     found one athlete filed three times. Without this they read as 'many' and
+     a registered family is pushed onto the long form. */
   var byKey = {};
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
@@ -109,10 +123,11 @@ function clinicLookup_(body) {
     var sp = splitFull_(full);
     var rowLast = cLast != null && r[cLast] ? r[cLast] : sp.last;
     /* Both names must match exactly after normalising. No prefix or fuzzy
-       matching: that is what produced the Qasim false positive.
+       matching: a prefix test once flagged a real athlete whose surname began
+       with the same two letters as a QA marker.
        The surname is accepted from EITHER the Player Last Name column or the
-       last token of the full name. Those disagree in real rows - Vincent
-       Dalmacio is filed twice with a nickname in different positions - and a
+       last token of the full name. Those two disagree whenever a nickname or a
+       second surname has been typed into one field but not the other, and a
        registered family should not be pushed onto the long form over it. */
     if (mrNorm_(sp.first) !== wantFirst) continue;
     var lastCandidates = [mrNorm_(splitFull_(rowLast).last || rowLast), mrNorm_(rowLast), mrNorm_(sp.last)];
