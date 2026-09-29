@@ -415,6 +415,44 @@ button { font: inherit; color: inherit; }
 .link:hover { gap: 0.85rem; }
 .link::after { content: "→"; font-family: var(--font-body); }
 
+/* A button that has to read as a quiet secondary choice inside a form step.
+   It is a <button> because it performs an action, not a navigation. */
+.linkbtn {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+.linkbtn:hover { color: var(--fg); }
+
+/* Several components set display on .field / .stack children, which would
+   otherwise win over the hidden attribute. */
+[hidden] { display: none !important; }
+
+/* Matched-athlete confirm card. */
+.cr-card {
+  border: 1px solid var(--line, rgba(255,255,255,.18));
+  border-left: 3px solid var(--accent, #c8102e);
+  background: rgba(255,255,255,.035);
+  padding: 1.25rem 1.25rem;
+}
+.cr-card .cr-name {
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 88, "wght" 800;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+  margin: 0;
+}
+.cr-card .cr-meta { margin: .4rem 0 0; font-size: .9rem; opacity: .75; }
+.cr-card .cr-session { margin: .9rem 0 0; font-size: .95rem; }
+
 /* --------------------------------------------------------------------------
    6. HEADER / NAV
    -------------------------------------------------------------------------- */
