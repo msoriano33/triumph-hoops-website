@@ -1,4 +1,12 @@
 #!/bin/sh
 # Blocks commits that carry family data or credentials.
-# Enable once per clone:  git config core.hooksPath .githooks
+#
+# Enable once per clone — BOTH lines, in this order:
+#   chmod +x .githooks/pre-commit
+#   git config core.hooksPath .githooks
+#
+# The chmod matters. Files added through GitHub's web upload arrive mode
+# 100644, and git silently skips a hook it cannot execute — so without it
+# this guard is present, looks enabled, and never runs. Check with:
+#   git config core.hooksPath && test -x .githooks/pre-commit && echo armed
 exec python3 "$(git rev-parse --show-toplevel)/tools/privacy-scan.py"
