@@ -34,6 +34,7 @@ const FALLBACK_FROM = "Triumph Website <onboarding@resend.dev>";
 const RESEND_URL = "https://api.resend.com/emails";
 
 const crypto = require("crypto");
+const CANON = require("../assets/js/canonical.js");
 const TRYOUT_CONFIRMATION = require("../lib/tryout-confirmation.js");
 const INTEREST_ACK = require("../lib/interest-acknowledgement.js");
 const CLOG = require("../lib/confirmation-log.js");
@@ -77,7 +78,8 @@ const FIELD_LABELS = {
   player_name: "Player",
   player_age: "Age",
   player_grade: "Grade",
-  school: "School",
+  school_code: "School",
+  school_other: "School (as the family typed it)",
   district_confirm: "Niles West district",
   interest: "Interest",
   experience: "Basketball experience",
@@ -152,8 +154,27 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
+/* Codes travel and are stored; LABELS are what a person reads. The email is
+   for a person, so it renders the label - but it prints the family's own words
+   for an "Other" school rather than the word "Other", because "Other school"
+   in an inbox tells a coach nothing. */
+function displayValue(key, fields) {
+  const raw = clean(fields[key]);
+  if (key === "player_grade") return CANON.gradeLabel(raw) || raw;
+  if (key === "school_code") {
+    if (raw.toUpperCase() === "OTHER") {
+      const typed = clean(fields.school_other, 120);
+      return typed ? typed + " (not on our list \u2014 needs review)" : "Other school (name missing)";
+    }
+    return CANON.schoolLabel(raw) || raw;
+  }
+  return raw;
+}
+
 function gradeOrAge(fields) {
-  if (fields.player_grade) return clean(fields.player_grade).toUpperCase();
+  if (fields.player_grade) {
+    return (CANON.gradeLabel(clean(fields.player_grade)) || clean(fields.player_grade)).toUpperCase();
+  }
   if (fields.player_age) return "AGE " + clean(fields.player_age).toUpperCase();
   return "";
 }
@@ -211,7 +232,7 @@ function buildBody(fields, notes, meta) {
   if (meta.submissionId) rows.push(["Submission ID", meta.submissionId]);
   FIELD_ORDER
     .filter((key) => fields[key])
-    .forEach((key) => rows.push([FIELD_LABELS[key], clean(fields[key])]));
+    .forEach((key) => rows.push([FIELD_LABELS[key], displayValue(key, fields)]));
 
   /* Anything the family submitted that is not in FIELD_LABELS still gets
      printed. A parent's answer is never silently discarded because a field
@@ -312,6 +333,34 @@ function validate(fields) {
     errors.push("Tryout acknowledgement is required.");
   }
 
+  /* ------------------------------------------------------------------
+     CANONICAL FIELDS (Phase 2C)
+     The dropdown the family used was generated from canonical.js. So is
+     this check. A value that is not in the list is refused here whether it
+     came from a stale cached page, a translated label, or curl.
+
+     Which subset applies is looked up per form source rather than hard-coded,
+     because Triumph runs athletes well outside the Junior Wolves 3-8 band and
+     applying the Junior Wolves limits site-wide would reject real families.
+     A source with no program mapping gets no canonical check rather than a
+     wrong one.
+     ------------------------------------------------------------------ */
+  const programName = CANON.sourceProgram[fields.source];
+  if (programName) {
+    const program = CANON.program(programName);
+    /* Junior Wolves registration and interest both name a school; the Triumph
+       enquiry forms do not ask, and must not be made to. */
+    const wantsSchool = program.collectsSchool &&
+      (fields.source === "junior_wolves_tryout" || fields.source === "junior_wolves_interest");
+
+    CANON.validateSubmission(programName, {
+      grade: fields.player_grade,
+      age: fields.player_age,
+      school_code: wantsSchool ? fields.school_code : undefined,
+      school_other: fields.school_other
+    }, { requireSchool: wantsSchool }).forEach((e) => errors.push(e));
+  }
+
   return errors;
 }
 
@@ -355,6 +404,7 @@ async function logToSheet(fields, submissionId) {
   if (!SHEETS_WEBHOOK_URL) return { logged: false, skipped: "not_configured" };
 
   const name = splitName(fields.player_name);
+  const schoolStore = CANON.schoolForStorage(fields.school_code, fields.school_other);
   const payload = {
     secret: SHEETS_WEBHOOK_SECRET,
     submissionId: submissionId,
@@ -365,7 +415,12 @@ async function logToSheet(fields, submissionId) {
     playerLastName: name.last,
     playerFullName: clean(fields.player_name, 200),
     grade: clean(fields.player_grade, 60),
-    school: clean(fields.school, 200),
+    /* School stores the family's reality: the official name when they picked
+       one from the list, their exact words when they picked "Other school".
+       schoolCode carries which of those it is, so an Other entry is never
+       mistaken later for a canonical school. */
+    school: schoolStore.display,
+    schoolCode: schoolStore.code,
     parentName: clean(fields.parent_name, 200),
     parentEmail: clean(fields.parent_email, 200),
     parentPhone: clean(fields.parent_phone, 60),
@@ -416,7 +471,7 @@ async function clinicRsvpState(fields, clinicId) {
       body: JSON.stringify({
         kind: "clinic_lookup", secret: SHEETS_WEBHOOK_SECRET,
         clinicId: clinicId, first: name.first, last: name.last,
-        grade: clean(fields.player_grade, 60)
+        grade: CANON.normaliseGrade(clean(fields.player_grade, 60))
       })
     });
     if (!response.ok) return null;

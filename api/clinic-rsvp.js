@@ -38,6 +38,7 @@ const crypto = require("crypto");
 const https = require("https");
 const http = require("http");
 const CLINICS = require("../assets/js/clinics.js");
+const CANON = require("../assets/js/canonical.js");
 const CONFIRMATION = require("../lib/rsvp-confirmation.js");
 const CLOG = require("../lib/confirmation-log.js");
 
@@ -88,12 +89,27 @@ function openClinic(id) {
   return clinic;
 }
 
+/* Grade, age and school are checked against assets/js/canonical.js - the same
+   file that generated the dropdown the family used. The browser list is a
+   convenience; THIS is the authority. A forged post, a stale cached page or a
+   translated label all fail here in exactly the same way. */
+const RSVP_PROGRAM = "junior_wolves";
+
+function canonProblem(f, opts) {
+  const errors = CANON.validateSubmission(RSVP_PROGRAM, {
+    grade: f.grade,
+    age: f.age,
+    school_code: f.school_code,
+    school_other: f.school_other
+  }, opts);
+  return errors.length ? errors[0] : null;
+}
+
 function validate(f) {
   if (!f.player_first) return "Player first name is required.";
   if (!f.player_last) return "Player last name is required.";
-  if (CLINICS.grades.indexOf(f.grade) === -1) return "Please choose your player's grade.";
-  if (CLINICS.ages.indexOf(Number(f.age)) === -1) return "Please choose your player's age.";
-  if (!f.school) return "School is required.";
+  const canon = canonProblem(f, { requireGrade: true, requireAge: true, requireSchool: true });
+  if (canon) return canon;
   if (!f.parent_name) return "Parent / guardian name is required.";
   if (!validEmail(f.parent_email)) return "A valid parent email is required.";
   if (!openClinic(f.clinic)) return "Please choose an upcoming clinic date.";
@@ -101,12 +117,13 @@ function validate(f) {
 }
 
 /* The matched path asks the family for nothing but a grade check and, when
-   we have no age on file, an age. Everything else is read from the sheet. */
+   we have no age on file, an age. Everything else is read from the sheet -
+   including school, which is why no school check runs here. */
 function validateMatched(f) {
   if (!f.player_first) return "Player first name is required.";
   if (!f.player_last) return "Player last name is required.";
-  if (CLINICS.grades.indexOf(f.grade) === -1) return "Please choose your player's grade.";
-  if (f.age && CLINICS.ages.indexOf(Number(f.age)) === -1) return "Please choose your player's age.";
+  if (!CANON.gradeAllowed(RSVP_PROGRAM, f.grade)) return "Please choose your player's grade.";
+  if (f.age && !CANON.ageAllowed(RSVP_PROGRAM, f.age)) return "Please choose your player's age.";
   if (!openClinic(f.clinic)) return "Please choose an upcoming clinic date.";
   return null;
 }
@@ -232,7 +249,11 @@ module.exports = async function handler(req, res) {
     player_last: clean(body.player_last, 60),
     grade: clean(body.grade, 8),
     age: clean(body.age, 3),
-    school: clean(body.school, 120),
+    /* school_code is the canonical code; school_other is what the family typed
+       when they chose "Other school". Both are kept: the code is what the
+       canonical layer reads, the text is what the family actually said. */
+    school_code: clean(body.school_code, 40).toUpperCase(),
+    school_other: clean(body.school_other, 120),
     parent_name: clean(body.parent_name, 120),
     parent_email: clean(body.parent_email, 200).toLowerCase(),
     clinic: clean(body.clinic, 10),
@@ -260,6 +281,12 @@ module.exports = async function handler(req, res) {
      the confirm is keyed to the same row. Anything else gets a fresh id. */
   const rsvpId = RSVP_ID_RE.test(String(body.rsvp_id || "")) ? String(body.rsvp_id)
     : "CR-2026-" + crypto.randomBytes(4).toString("hex").toUpperCase();
+
+  /* A canonical pick stores its official display name; an "Other" pick stores
+     the family's exact words. Never the other way round - an Other entry that
+     happens to spell a canonical school stays an Other entry until a person
+     decides otherwise. */
+  const schoolStore = CANON.schoolForStorage(f.school_code, f.school_other);
   const payload = matchToken ? {
     secret: SHEETS_WEBHOOK_SECRET,
     kind: "clinic_rsvp_matched",
@@ -287,7 +314,8 @@ module.exports = async function handler(req, res) {
     playerFull: f.player_first + " " + f.player_last,
     grade: f.grade,
     age: Number(f.age),
-    school: f.school,
+    school: schoolStore.display,
+    schoolCode: schoolStore.code,
     parentName: f.parent_name,
     parentEmail: f.parent_email,
     source: f.source

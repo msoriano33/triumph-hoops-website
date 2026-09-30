@@ -22,6 +22,7 @@
 const https = require("https");
 const http = require("http");
 const CLINICS = require("../assets/js/clinics.js");
+const CANON = require("../assets/js/canonical.js");
 
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
@@ -108,7 +109,7 @@ module.exports = async function handler(req, res) {
 
   const clinic = CLINICS.clinicById(clinicId);
   if (!clinic) return res.status(400).json({ ok: false, error: "Unknown clinic." });
-  if (CLINICS.grades.indexOf(grade) === -1) {
+  if (!CANON.gradeAllowed("junior_wolves", grade)) {
     return res.status(400).json({ ok: false, error: "Please choose a grade." });
   }
   if (!first || !last) {
