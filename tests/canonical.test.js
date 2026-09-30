@@ -339,6 +339,143 @@ t("it validates submissions identically", () => {
   });
 });
 
+
+section("Experience and interest - the last two translated-label fields");
+
+t("every experience and interest option has a stable code and a label", () => {
+  [["experience", CANON.experienceOptions], ["interest", CANON.interestOptions]].forEach(([kind, list]) => {
+    assert.ok(list.length > 0, kind + " list is empty");
+    const seen = new Set();
+    list.forEach((o) => {
+      assert.ok(/^[A-Z][A-Z0-9_]*$/.test(o.value), kind + " code not stable: " + o.value);
+      assert.ok(o.label && o.label.trim(), kind + " missing label for " + o.value);
+      assert.ok(!seen.has(o.value), "duplicate " + kind + " code " + o.value);
+      seen.add(o.value);
+    });
+  });
+});
+t("no rendered option carries a code as its visible label", () => {
+  CANON.experienceOptions.concat(CANON.interestOptions).forEach((o) =>
+    assert.notStrictEqual(o.label, o.value, "families would see the code " + o.value));
+});
+t("a program's allowed set is the union of its own forms", () => {
+  /* Computed, never a second hand-kept list. training.html offers no team
+     and teams.html offers no weekly training, yet both are Triumph. */
+  const tri = CANON.choicesForProgram("interest", "triumph").map((o) => o.value);
+  assert.ok(tri.includes("WEEKLY_TRAINING") && tri.includes("DEVELOPMENT_TEAM"), tri.join(","));
+  const teams = CANON.choicesForProgram("interest", "triumph_teams").map((o) => o.value);
+  assert.ok(!teams.includes("WEEKLY_TRAINING"), "teams must not offer weekly training");
+  assert.ok(teams.includes("DEVELOPMENT_TEAM"));
+});
+t("every code a form renders is a real canonical code", () => {
+  Object.keys(CANON.formOptions).forEach((source) => {
+    ["experience", "interest"].forEach((kind) => {
+      (CANON.formOptions[source][kind] || []).forEach((code) =>
+        assert.ok(CANON.choiceByValue(kind, code), source + " renders unknown " + kind + " code " + code));
+    });
+  });
+});
+t("every form source that renders options is mapped to a program", () => {
+  Object.keys(CANON.formOptions).forEach((source) =>
+    assert.ok(CANON.sourceProgram[source], source + " has no program mapping"));
+});
+
+t("THE REAL ONE: the Spanish experience label is rejected", () => {
+  /* MASTER REGISTRATIONS holds two rows reading exactly this - the same
+     family whose grade arrived as "7.º grado". This is the regression test
+     for a defect that already happened, not a hypothetical one. */
+  assert.strictEqual(
+    CANON.choiceAllowed("experience", "junior_wolves", "Principiante en el baloncesto organizado"),
+    false);
+});
+t("a translated interest label is rejected", () => {
+  ["Entrenamiento semanal de habilidades", "Equipo de desarrollo", "No estoy seguro"]
+    .forEach((v) => assert.strictEqual(CANON.choiceAllowed("interest", "triumph", v), false, v));
+});
+t("the canonical code is accepted", () => {
+  assert.ok(CANON.choiceAllowed("experience", "junior_wolves", "NEW_TO_ORGANIZED"));
+  assert.ok(CANON.choiceAllowed("interest", "triumph", "WEEKLY_TRAINING"));
+});
+t("a code from ANOTHER program's list is rejected", () => {
+  /* "Some skills training" is a Triumph option; Junior Wolves never offers it. */
+  assert.strictEqual(CANON.choiceAllowed("experience", "junior_wolves", "SOME_TRAINING"), false);
+  assert.strictEqual(CANON.choiceAllowed("interest", "triumph_teams", "WEEKLY_TRAINING"), false);
+});
+t("a forged or unknown code is rejected", () => {
+  ["HOGWARTS", "'; DROP TABLE", "", "   ", "NEW_TO_ORGANIZED; --"]
+    .forEach((v) => assert.strictEqual(CANON.choiceAllowed("experience", "junior_wolves", v), false, JSON.stringify(v)));
+});
+t("the exact English label still works, for a page cached before the change", () => {
+  /* The deliberate adapter. It must accept the canonical label and nothing
+     else - which is why the translated strings above still fail. */
+  assert.ok(CANON.choiceAllowed("experience", "junior_wolves", "School team"));
+  assert.strictEqual(CANON.choiceForStorage("experience", "School team").code, "SCHOOL_TEAM");
+});
+t("what gets STORED is the label, resolved here and not sent by the browser", () => {
+  assert.strictEqual(CANON.choiceForStorage("experience", "REC_LEAGUE").display, "Park district / rec league");
+  assert.strictEqual(CANON.choiceForStorage("interest", "NOT_SURE").display,
+    "Not sure — help me find the right fit");
+  assert.strictEqual(CANON.choiceForStorage("experience", "Principiante en el baloncesto organizado").display, "");
+});
+t("stored labels match what MASTER already holds, so the column stays uniform", () => {
+  /* These five strings are the distinct non-blank values in the live
+     Basketball Experience column, minus the Spanish pair. If a code ever
+     resolves to a different wording the column silently splits in two. */
+  const live = ["New to organized basketball", "Park district / rec league", "School team",
+                "Previous feeder or travel team", "Travel or AAU experience"];
+  const produced = CANON.choicesForProgram("experience", "junior_wolves").map((o) => o.label).sort();
+  assert.deepStrictEqual(produced, live.slice().sort());
+});
+t("validateSubmission refuses a bad experience but tolerates a blank one", () => {
+  const bad = CANON.validateSubmission("junior_wolves",
+    { grade: "7", school_code: "LINCOLN_JH", experience: "Principiante en el baloncesto organizado" },
+    { requireSchool: true });
+  assert.ok(bad.length > 0, "a translated experience was accepted");
+  const blank = CANON.validateSubmission("junior_wolves",
+    { grade: "7", school_code: "LINCOLN_JH", experience: "" }, { requireSchool: true });
+  assert.deepStrictEqual(blank, [], "a blank experience must stay optional: " + blank.join(" "));
+});
+t("every new select is wired to the runtime verifier too", () => {
+  /* The generated markup is the primary defence; forms.js repairing a stale
+     page is the safety net. A select with options but no data-canon is the
+     one that would silently keep shipping stale values. */
+  const fs = require("fs");
+  const path = require("path");
+  const PAGES = ["index.html", "junior-wolves.html", "teams.html", "training.html"];
+  PAGES.forEach((page) => {
+    const src = fs.readFileSync(path.join(__dirname, "..", page), "utf8");
+    const re = /<select\b([^>]*)name="(experience|interest)"([^>]*)>/g;
+    let m, seen = 0;
+    while ((m = re.exec(src))) {
+      seen++;
+      const attrs = m[1] + m[3];
+      assert.ok(/data-canon="/.test(attrs), page + ": " + m[2] + " select has no data-canon");
+      const srcAttr = /data-canon-source="([a-z_]+)"/.exec(attrs);
+      assert.ok(srcAttr, page + ": " + m[2] + " select has no data-canon-source");
+      assert.ok(CANON.choicesForSource(m[2], srcAttr[1]).length > 0,
+        page + ": source " + srcAttr[1] + " declares no " + m[2] + " options");
+    }
+    assert.ok(seen > 0, page + " has no experience/interest select at all");
+  });
+});
+t("no page still renders an option without a value attribute", () => {
+  /* The defect in one line. If this ever fails again, some select somewhere
+     is submitting whatever the browser decided to display. */
+  const fs = require("fs");
+  const path = require("path");
+  ["index.html", "junior-wolves.html", "teams.html", "training.html", "clinic-rsvp.html"]
+    .forEach((page) => {
+      const src = fs.readFileSync(path.join(__dirname, "..", page), "utf8");
+      const bare = (src.match(/<option>/g) || []).length;
+      assert.strictEqual(bare, 0, page + " still has " + bare + " option(s) with no value");
+    });
+});
+t("the parent-facing error names the field and not the code", () => {
+  const errs = CANON.validateSubmission("triumph", { interest: "NONSENSE" }, {});
+  assert.ok(errs.length === 1, errs.join(" "));
+  assert.ok(!/NONSENSE|code|JW_CANON/i.test(errs[0]), errs[0]);
+});
+
 console.log("\n" + "=".repeat(60));
 console.log(pass + " passed, " + fail + " failed");
 if (fail) { console.log("\nFAILURES:\n" + failures.join("\n")); process.exit(1); }
