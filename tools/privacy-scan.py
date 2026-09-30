@@ -34,10 +34,36 @@ ALLOWED_EMAILS = {
     "msoriano33@gmail.com",
     "noreply@anthropic.com",
 }
-ALLOWED_EMAIL_DOMAINS = {"example.com", "example.org", "resend.dev", "triumphhoopsacademy.com"}
+ALLOWED_EMAIL_DOMAINS = {
+    "example.com", "example.org", "resend.dev", "triumphhoopsacademy.com",
+    # Filler domains the application itself treats as placeholders and refuses
+    # to send to. Mirrors EA_PLACEHOLDER_DOMAINS in ops/funnel/event-audience.gs
+    # and PLACEHOLDER_DOMAINS in lib/jw-email.js. An address under one of these
+    # is by definition not a family we can contact, so flagging it only trains
+    # people to ignore this scanner.
+    "example.net", "example.edu", "test.com", "test.test", "email.com",
+    "domain.com", "yourdomain.com", "mydomain.com", "none.com",
+    "noemail.com", "no-email.com", "nomail.com", "fake.com", "sample.com",
+}
+# RFC 2606 / RFC 6761 reserve these top-level domains precisely so that they can
+# never resolve to a real mailbox. An address under one cannot be a family's.
+RESERVED_EMAIL_TLDS = (".invalid", ".test", ".example", ".localhost")
+# ONE declared fixture domain, and the reason it needs declaring.
+#
+#   The audience code treats reserved TLDs as placeholders and excludes them -
+#   correctly, because that is what a real sheet row containing a filler address
+#   is. So a fixture that must survive the sendability rules in order to be
+#   sorted into an audience cannot use a reserved TLD, and will therefore look
+#   real to this scanner. Rather than reach for --no-verify on every such test,
+#   one domain is named here. Nothing routes to it, nothing is ever sent to it,
+#   and a real family address will never be under it.
+ALLOWED_EMAIL_DOMAINS_EXACT = {"qa-fixture-not-real.org"}
 # Placeholders that appear in validation copy, e.g. "like name@email.com"
 ALLOWED_EMAIL_LOCAL_HINTS = {"you", "name", "your", "someone", "first.last", "test"}
 ALLOWED_PHONES = {"847-830-9454", "(847) 830-9454", "8478309454"}   # published coach line
+# 555-0100 through 555-0199 are the NANP's reserved fictitious numbers. They
+# are the correct thing for a test fixture to use and cannot reach anybody.
+FICTITIOUS_PHONE = re.compile(r"\b(?:\+?1[-. ])?\(?\d{3}\)?[-. ]?555[-. ]?01\d{2}\b")
 ALLOWED_ADDRESS_FRAGMENTS = {"5701 Oakton"}                          # the school
 
 SKIP_DIRS = {".git", "node_modules", ".vercel", "dist", "build"}
@@ -65,7 +91,9 @@ def email_is_allowed(addr):
     if a in ALLOWED_EMAILS:
         return True
     local, _, domain = a.partition("@")
-    if domain in ALLOWED_EMAIL_DOMAINS:
+    if domain in ALLOWED_EMAIL_DOMAINS or domain in ALLOWED_EMAIL_DOMAINS_EXACT:
+        return True
+    if domain.endswith(RESERVED_EMAIL_TLDS):
         return True
     # "like name@email.com" style placeholders
     if local in ALLOWED_EMAIL_LOCAL_HINTS:
@@ -88,6 +116,7 @@ def scan_text(path, text):
     phones = {m.group(0) for m in PHONE.finditer(text)}
     phones = {p for p in phones if p.replace(" ", "").replace("(", "").replace(")", "") not in
               {q.replace(" ", "").replace("(", "").replace(")", "") for q in ALLOWED_PHONES}}
+    phones = {p for p in phones if not FICTITIOUS_PHONE.fullmatch(p)}
     if phones:
         problems.append(("phone number(s)", f"{len(phones)} number(s) not on the published-contact allowlist"))
 
