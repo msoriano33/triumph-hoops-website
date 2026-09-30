@@ -1,3 +1,24 @@
+/* doPost also dispatches kind 'confirmation_log' -> confirmationLog_(body),
+   added 2026-09-30. See ops/funnel/confirmation-log.gs. */
+/* REFERENCE COPY — NOT THE DEPLOYED SOURCE.
+   The live script is the Apps Script project bound to the master workbook,
+   and that project is the authority. This copy has drifted from it. Known
+   differences as of 2026-09-30, after the Phase 2C deploy (V13):
+
+     - live HEADERS carries 39 entries; this copy carries fewer. The live
+       order ends: ... Last Updated, Jersey / Top Size, Shorts / Bottom Size,
+       Athlete ID, School Code. Its row array matches it entry for entry, and
+       ciEnsureColumns() reports any mismatch rather than writing over it.
+     - live doPost has an unknown-kind guard: a POST carrying a `kind` the
+       deployment does not recognise AND no submissionId is refused instead
+       of being appended as a registration.
+     - live doPost calls ciSyncOne_(body.submissionId) after the append, to
+       assign the Athlete ID inside the lock it already holds.
+     - live onEditHandler resolves its target column by
+       HEADERS.indexOf('Last Updated') rather than by HEADERS.length.
+
+   Re-sync from the live project before relying on this file for anything.
+   ========================================================================== */
 /**
  * JUNIOR WOLVES — 2026–27 REGISTRATION + TRYOUT MASTER
  * Apps Script bound to the master spreadsheet.
@@ -19,7 +40,12 @@ var DEDUPE_WINDOW_MS = 2 * 60 * 1000;   // rapid re-posts of the same person
 var SECRET_PROP = 'SHEETS_WEBHOOK_SECRET';
 
 var HEADERS = [
-  'Submission ID', 'Timestamp', 'Registration Source',
+  'Submission ID', 'Timestamp',
+  /* Index 2 was labelled 'Registration Source' but doPost has always
+     written body.submissionType into it, and every value in the live
+     sheet is a submission type. The header row was corrected on
+     2026-09-29; this keeps setupWorkbook() from reverting it. */
+  'Submission Type',
   'Player First Name', 'Player Last Name', 'Player Full Name',
   'Grade', 'School',
   'Parent / Guardian Name', 'Parent Email', 'Parent Phone',
