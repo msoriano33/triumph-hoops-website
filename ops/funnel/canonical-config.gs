@@ -133,6 +133,46 @@
       DECATUR_CLASSICAL: ["Decatur Classical School", "Decatur Classical"]
     },
 
+    experienceOptions: [
+      { value: "NEW_TO_BASKETBALL", label: "New to basketball" },
+      { value: "NEW_TO_ORGANIZED",  label: "New to organized basketball" },
+      { value: "REC_LEAGUE",        label: "Park district / rec league" },
+      { value: "SOME_TRAINING",     label: "Some skills training" },
+      { value: "SCHOOL_TEAM",       label: "School team" },
+      { value: "SCHOOL_TEAM_EXP",   label: "School team experience" },
+      { value: "FEEDER_OR_TRAVEL",  label: "Previous feeder or travel team" },
+      { value: "TRAVEL_AAU",        label: "Travel or AAU experience" }
+    ],
+
+    interestOptions: [
+      { value: "WEEKLY_TRAINING",  label: "Weekly skills training" },
+      { value: "SUNDAY_TRAINING",  label: "Sunday development training" },
+      { value: "DEVELOPMENT_TEAM", label: "Development team" },
+      { value: "AAU_TRAVEL",       label: "AAU / travel team" },
+      { value: "NOT_SURE",         label: "Not sure — help me find the right fit" }
+    ],
+
+    formOptions: {
+      junior_wolves_tryout: {
+        experience: ["NEW_TO_ORGANIZED", "REC_LEAGUE", "SCHOOL_TEAM", "FEEDER_OR_TRAVEL", "TRAVEL_AAU"]
+      },
+      junior_wolves_interest: {
+        experience: ["NEW_TO_ORGANIZED", "REC_LEAGUE", "SCHOOL_TEAM", "FEEDER_OR_TRAVEL", "TRAVEL_AAU"]
+      },
+      homepage_get_started: {
+        experience: ["NEW_TO_BASKETBALL", "REC_LEAGUE", "SOME_TRAINING", "SCHOOL_TEAM_EXP", "TRAVEL_AAU"],
+        interest: ["WEEKLY_TRAINING", "SUNDAY_TRAINING", "DEVELOPMENT_TEAM", "AAU_TRAVEL", "NOT_SURE"]
+      },
+      weekly_training: {
+        experience: ["NEW_TO_BASKETBALL", "REC_LEAGUE", "SOME_TRAINING", "SCHOOL_TEAM_EXP", "TRAVEL_AAU"],
+        interest: ["WEEKLY_TRAINING", "SUNDAY_TRAINING", "NOT_SURE"]
+      },
+      development_team_interest: {
+        experience: ["NEW_TO_BASKETBALL", "REC_LEAGUE", "SOME_TRAINING", "SCHOOL_TEAM_EXP", "TRAVEL_AAU"],
+        interest: ["DEVELOPMENT_TEAM", "AAU_TRAVEL", "NOT_SURE"]
+      }
+    },
+
     programs: {
       junior_wolves: {
         label: "Junior Wolves",
@@ -334,6 +374,16 @@
       }
     }
 
+    ["experience", "interest"].forEach(function (kind) {
+      var v = fields[kind];
+      if (v === undefined || v === null || String(v).trim() === "") return;
+      if (!JW_CANON.choiceAllowed(kind, programName, v)) {
+        errors.push(kind === "interest"
+          ? "Please choose an option from the list."
+          : "Please choose a basketball experience level from the list.");
+      }
+    });
+
     if (p.collectsSchool) {
       var code = String(fields.school_code == null ? "" : fields.school_code).trim().toUpperCase();
       if (!code) {
@@ -346,6 +396,64 @@
     }
 
     return errors;
+  };
+
+  function choiceList(kind) {
+    return kind === "interest" ? JW_CANON.interestOptions : JW_CANON.experienceOptions;
+  }
+
+  JW_CANON.choiceByValue = function (kind, v) {
+    var code = String(v == null ? "" : v).trim();
+    var list = choiceList(kind);
+    for (var i = 0; i < list.length; i++) if (list[i].value === code) return list[i];
+    return null;
+  };
+
+  JW_CANON.choiceByLabel = function (kind, v) {
+    var want = fold(v);
+    if (!want) return null;
+    var list = choiceList(kind);
+    for (var i = 0; i < list.length; i++) if (fold(list[i].label) === want) return list[i];
+    return null;
+  };
+
+  JW_CANON.choicesForSource = function (kind, source) {
+    var f = JW_CANON.formOptions[source];
+    var codes = f && f[kind] ? f[kind] : null;
+    if (!codes) return [];
+    return codes.map(function (c) { return JW_CANON.choiceByValue(kind, c); })
+                .filter(function (x) { return !!x; });
+  };
+
+  JW_CANON.choicesForProgram = function (kind, programName) {
+    var seen = {}, out = [];
+    Object.keys(JW_CANON.formOptions).forEach(function (source) {
+      if (JW_CANON.sourceProgram[source] !== programName) return;
+      (JW_CANON.formOptions[source][kind] || []).forEach(function (code) {
+        if (seen[code]) return;
+        seen[code] = true;
+        var item = JW_CANON.choiceByValue(kind, code);
+        if (item) out.push(item);
+      });
+    });
+    return out;
+  };
+
+  JW_CANON.choiceAllowed = function (kind, programName, v) {
+    var item = JW_CANON.choiceByValue(kind, v) || JW_CANON.choiceByLabel(kind, v);
+    if (!item) return false;
+    var allowed = JW_CANON.choicesForProgram(kind, programName);
+    for (var i = 0; i < allowed.length; i++) if (allowed[i].value === item.value) return true;
+    return false;
+  };
+
+  JW_CANON.choiceForStorage = function (kind, v) {
+    var item = JW_CANON.choiceByValue(kind, v) || JW_CANON.choiceByLabel(kind, v);
+    return item ? { code: item.value, display: item.label } : { code: "", display: "" };
+  };
+
+  JW_CANON.choiceOptionsHtml = function (kind, source, placeholder) {
+    return JW_CANON.optionsHtml(JW_CANON.choicesForSource(kind, source), placeholder);
   };
 
   JW_CANON.schoolForStorage = function (code, other) {
