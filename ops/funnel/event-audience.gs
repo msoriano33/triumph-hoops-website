@@ -86,6 +86,59 @@ function eaSendable_(e) {
   return '';
 }
 
+/* WHO WAS ACTUALLY AT A PAST CLINIC.
+
+   The only acceptable source is the reconciled attendance written into
+   CLINIC RSVP by the Sept 29 write pass: 121 real Sept 27 rows, of which 112
+   carry Attendance Status = 'Present', 7 'Absent', and 2 deliberately blank.
+
+   What this must NOT be inferred from, because each would be wrong in a way
+   that is invisible until a parent is asked to review an event their child
+   did not attend:
+     - email opens            (a parent can open an email from a car park)
+     - a clinic RSVP alone    (8 families RSVPed Sept 27 and did not come)
+     - a feedback submission  (circular: that is the thing we are measuring)
+     - tryout registration    (a different event entirely)
+
+   The two blank rows are Shinobia Gray and Yusuf Hassan: exactly one of them
+   attended and the check-in sheet does not say which. Blank is not Present,
+   so both fall to the non-attendee side and neither is asked for feedback -
+   which is the disposition the write-pass log recorded for them.
+
+   A household counts as an attendee if ANY of its athletes was marked
+   Present. */
+function eaAttendedSet_(rRows, rIdx, attendedClinicId) {
+  var set = {}, present = 0, absent = 0, unresolved = 0;
+  for (var i = 0; i < rRows.length; i++) {
+    var row = rRows[i];
+    if (EA_QA.test(row.join(' '))) continue;
+    if (eaClinicDate_(row[rIdx['Clinic Date']]) !== attendedClinicId) continue;
+    var status = String(row[rIdx['Attendance Status']] || '').trim();
+    if (status === 'Cancelled') continue;
+    if (status !== 'Present') { if (status === 'Absent') absent++; else unresolved++; continue; }
+    present++;
+    var e = eaEmail_(row[rIdx['Parent Email']]);
+    if (eaSendable_(e)) continue;      /* blank-contact walk-ins cannot be emailed */
+    set[e] = true;
+  }
+  return { set: set, households: Object.keys(set).length,
+           rowsPresent: present, rowsAbsent: absent, rowsUnresolved: unresolved };
+}
+
+/* A stable fingerprint of a set of addresses. Sorted, so it does not depend
+   on sheet order; hashed, so a count check can be upgraded to an identity
+   check without any address leaving the spreadsheet. */
+function eaFingerprint_(emails) {
+  var sorted = emails.slice().sort().join('\n');
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, sorted, Utilities.Charset.UTF_8);
+  var hex = '';
+  for (var i = 0; i < bytes.length; i++) {
+    var b = (bytes[i] + 256) % 256;
+    hex += (b < 16 ? '0' : '') + b.toString(16);
+  }
+  return hex.slice(0, 32);
+}
+
 function eaHeaderIndex_(sheet) {
   var head = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var idx = {};
@@ -93,24 +146,45 @@ function eaHeaderIndex_(sheet) {
   return idx;
 }
 
-/* An RSVP row counts only if it is for this clinic and has not been cancelled.
-   Anything else - Cancelled, a QA marker - is not a live RSVP. */
-function eaLiveRsvp_(row, idx, clinicId) {
-  if (String(row[idx['Clinic Date']]).trim() !== clinicId) return false;
-  if (String(row[idx['Attendance Status']]).trim() === 'Cancelled') return false;
-  return true;
-}
 
 /**
- * body: { clinicId, segment }  segment = 'not_rsvpd' | 'rsvpd'
- * Returns { ok, clinicId, segment, count, households:[{email, athletes:[{first,grade}]}],
- *           excluded:{...}, computedAt }
+ * body: { clinicId, segment, attended?, attendedClinicId? }
+ *
+ *   segment          'not_rsvpd' | 'rsvpd'   - RSVP state for THIS clinic
+ *   attended         true | false | omitted  - Sept 27 attendance state
+ *   attendedClinicId the PAST clinic attendance is read from; required
+ *                    whenever 'attended' is supplied
+ *
+ * Omitting 'attended' gives the original two-segment behaviour unchanged,
+ * which is what reminder6 / reminder2 / logistics / morning still use.
+ * Supplying it intersects the segment with attendance, producing one cell of
+ * the 2x2:
+ *
+ *              attended:true      attended:false
+ *   rsvpd          A1                  B1
+ *   not_rsvpd      A2                  B2
+ *
+ * The four cells partition the master audience exactly: 'attended' splits it
+ * in two and 'segment' splits each half in two, with no row able to satisfy
+ * both sides of either test. eventAudienceMatrix_ proves that against live
+ * data rather than asserting it here.
+ *
+ * Returns { ok, clinicId, segment, attended, count, fingerprint,
+ *           households:[{email, athletes:[{first,grade}]}], excluded:{...}, computedAt }
  */
 function eventAudience_(body) {
   var clinicId = String(body.clinicId || '').trim();
   var segment = String(body.segment || '').trim();
+  var hasAttended = (body.attended === true || body.attended === false);
+  var attendedClinicId = String(body.attendedClinicId || '').trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(clinicId)) return { ok: false, error: 'bad clinicId' };
   if (segment !== 'not_rsvpd' && segment !== 'rsvpd') return { ok: false, error: 'bad segment' };
+  if (hasAttended && !/^\d{4}-\d{2}-\d{2}$/.test(attendedClinicId)) {
+    return { ok: false, error: 'attended requires a valid attendedClinicId' };
+  }
+  if (hasAttended && attendedClinicId === clinicId) {
+    return { ok: false, error: 'attendedClinicId must be a PAST clinic, not the one being sent' };
+  }
 
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var mSheet = ss.getSheetByName(EA_MASTER);
@@ -167,15 +241,25 @@ function eventAudience_(body) {
     if (!masterAthletes[ee]) masterAthletes[ee] = [];
   }
 
+  /* ---- the attendance dimension, read from the PAST clinic ---- */
+  var att = hasAttended ? eaAttendedSet_(rRows, rIdx, attendedClinicId)
+                        : { set: null, households: 0, rowsPresent: 0, rowsAbsent: 0, rowsUnresolved: 0 };
+
   /* ---- assemble the requested segment ---- */
   var households = [];
+  function wanted(e) {
+    if (!hasAttended) return true;
+    return (att.set[e] === true) === body.attended;
+  }
   if (segment === 'rsvpd') {
     Object.keys(rsvpAthletes).forEach(function (e) {
+      if (!wanted(e)) return;
       households.push({ email: e, athletes: eaDedupe_(rsvpAthletes[e]) });
     });
   } else {
     Object.keys(masterAthletes).forEach(function (e) {
       if (rsvpAthletes[e]) return;                 /* already RSVPed: not this segment */
+      if (!wanted(e)) return;
       households.push({ email: e, athletes: eaDedupe_(masterAthletes[e]) });
     });
   }
@@ -185,13 +269,121 @@ function eventAudience_(body) {
     ok: true,
     clinicId: clinicId,
     segment: segment,
+    attended: hasAttended ? body.attended : null,
+    attendedClinicId: hasAttended ? attendedClinicId : null,
+    attendedHouseholds: hasAttended ? att.households : null,
+    attendanceRows: hasAttended
+      ? { present: att.rowsPresent, absent: att.rowsAbsent, unresolved: att.rowsUnresolved } : null,
     count: households.length,
+    fingerprint: eaFingerprint_(households.map(function (h) { return h.email; })),
     households: households,
     rsvpdCount: Object.keys(rsvpAthletes).length,
     masterCount: Object.keys(masterAthletes).length,
     excluded: excluded,
     computedAt: new Date().toISOString()
   };
+}
+
+/* ==========================================================================
+   THE PARTITION PROOF
+   --------------------------------------------------------------------------
+   Computes all four cells in one pass and checks the properties that make a
+   four-way send safe, HERE, where all four sets are actually in hand:
+
+     - pairwise disjoint          no household can receive two variants
+     - union equals the master    no household is silently dropped
+     - counts sum to the master   the arithmetic agrees with the sets
+
+   It returns counts and fingerprints only - never an address. The sender
+   re-derives the fingerprint of the cell it is about to send to and refuses
+   unless it matches the one proved disjoint here. That upgrades "the count
+   is what I approved" into "the PEOPLE are who I approved", which a count on
+   its own can never establish: two different households joining and leaving
+   between two reads leaves the count untouched.
+   ========================================================================== */
+function eventAudienceMatrix_(body) {
+  var clinicId = String(body.clinicId || '').trim();
+  var attendedClinicId = String(body.attendedClinicId || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(clinicId)) return { ok: false, error: 'bad clinicId' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(attendedClinicId)) return { ok: false, error: 'bad attendedClinicId' };
+  if (clinicId === attendedClinicId) return { ok: false, error: 'attendedClinicId must be a PAST clinic' };
+
+  var cells = [
+    { key: 'A1', segment: 'rsvpd',     attended: true  },
+    { key: 'A2', segment: 'not_rsvpd', attended: true  },
+    { key: 'B1', segment: 'rsvpd',     attended: false },
+    { key: 'B2', segment: 'not_rsvpd', attended: false }
+  ];
+
+  var out = {}, sets = {}, total = 0, masterCount = null, computedAt = null;
+  for (var i = 0; i < cells.length; i++) {
+    var c = cells[i];
+    var a = eventAudience_({ clinicId: clinicId, segment: c.segment,
+                             attended: c.attended, attendedClinicId: attendedClinicId });
+    if (!a.ok) return { ok: false, error: c.key + ': ' + a.error };
+    var emails = a.households.map(function (h) { return h.email; });
+    sets[c.key] = emails;
+    total += emails.length;
+    masterCount = a.masterCount;
+    computedAt = a.computedAt;
+    out[c.key] = { segment: c.segment, attended: c.attended, count: emails.length,
+                   fingerprint: a.fingerprint,
+                   withKnownAthletes: a.households.filter(function (h) {
+                     return h.athletes && h.athletes.length > 0; }).length };
+  }
+
+  /* pairwise disjoint */
+  var overlaps = [], keys = Object.keys(sets);
+  for (var x = 0; x < keys.length; x++) {
+    for (var y = x + 1; y < keys.length; y++) {
+      var seen = {}, n = 0;
+      sets[keys[x]].forEach(function (e) { seen[e] = true; });
+      sets[keys[y]].forEach(function (e) { if (seen[e]) n++; });
+      if (n) overlaps.push({ pair: keys[x] + '/' + keys[y], shared: n });
+    }
+  }
+
+  /* union == the master audience, compared as SETS and not as two numbers */
+  var union = {};
+  keys.forEach(function (k) { sets[k].forEach(function (e) { union[e] = true; }); });
+  var unionKeys = Object.keys(union);
+
+  var master = eventAudience_({ clinicId: clinicId, segment: 'not_rsvpd' });
+  var masterSet = {};
+  master.households.forEach(function (h) { masterSet[h.email] = true; });
+  eventAudience_({ clinicId: clinicId, segment: 'rsvpd' })
+    .households.forEach(function (h) { masterSet[h.email] = true; });
+  var masterKeys = Object.keys(masterSet);
+
+  var missing = 0;   /* in the master audience but in no cell - would be dropped */
+  masterKeys.forEach(function (e) { if (!union[e]) missing++; });
+  var extra = 0;     /* in a cell but not in the master audience - would be new */
+  unionKeys.forEach(function (e) { if (!masterSet[e]) extra++; });
+
+  return {
+    ok: true,
+    clinicId: clinicId,
+    attendedClinicId: attendedClinicId,
+    cells: out,
+    total: total,
+    unionSize: unionKeys.length,
+    masterAudience: masterKeys.length,
+    masterCountReported: masterCount,
+    overlaps: overlaps,
+    missingFromCells: missing,
+    notInMaster: extra,
+    unionFingerprint: eaFingerprint_(unionKeys),
+    masterFingerprint: eaFingerprint_(masterKeys),
+    partitionOk: overlaps.length === 0 && missing === 0 && extra === 0 &&
+                 total === unionKeys.length && unionKeys.length === masterKeys.length,
+    computedAt: computedAt
+  };
+}
+
+/* Runnable from the editor. Counts and fingerprints only - no addresses. */
+function eventAudienceMatrixReport() {
+  var m = eventAudienceMatrix_({ clinicId: '2026-10-11', attendedClinicId: '2026-09-27' });
+  Logger.log(JSON.stringify(m, null, 1));
 }
 
 /* One athlete filed twice is one athlete. Keyed on normalised name + grade so
