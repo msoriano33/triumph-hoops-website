@@ -126,12 +126,94 @@ function postFresh(url, body, ms) {
   });
 }
 
-/* Live audience, straight from the sheet. Never cached, never stored. */
-async function liveAudience(clinicId, segment) {
+/* The same fingerprint the Apps Script computes: the cell's addresses,
+   sorted, newline-joined, SHA-256, first 32 hex characters. Sorting is what
+   makes it independent of sheet order; hashing is what lets the two sides
+   compare WHO is in a cell without an address crossing the wire in either
+   direction. */
+function fingerprint(emails) {
+  return crypto.createHash("sha256")
+    .update(emails.slice().sort().join("\n"), "utf8")
+    .digest("hex").slice(0, 32);
+}
+
+/* All four cells at once, with the disjointness and union checks done in the
+   sheet where all four sets exist simultaneously. Counts and fingerprints
+   only - no addresses. */
+async function liveMatrix(clinicId, attendedClinicId) {
   const posted = await postFresh(SHEETS_WEBHOOK_URL, JSON.stringify({
+    kind: "event_audience_matrix", secret: SHEETS_WEBHOOK_SECRET,
+    clinicId: clinicId, attendedClinicId: attendedClinicId
+  }), TIMEOUT_MS);
+  let raw = posted.raw;
+  if (posted.location) {
+    const echo = await getEcho(posted.location, TIMEOUT_MS, 0);
+    raw = echo.raw || raw;
+  }
+  let out = null;
+  try { out = JSON.parse(raw); } catch (e) { return null; }
+  return (out && out.ok === true && out.cells) ? out : null;
+}
+
+/* THE GATE, AS A PURE FUNCTION.
+
+   Kept separate from the handler and exported so tests/segmentation.test.js
+   can drive every refusal path with synthetic data - an overlap, a dropped
+   household, a drifted fingerprint, a disagreeing count. A gate whose failure
+   branches have never executed is a gate nobody has tested; these have.
+
+   Returns null when the send may proceed, or { status, payload } to refuse. */
+function partitionVerdict(matrix, aud, stage) {
+  if (!matrix) {
+    return { status: 502, payload: { ok: false,
+      error: "the four-way audience proof could not be computed; nothing was sent" } };
+  }
+  const cellKey = stage.attended
+    ? (stage.segment === "rsvpd" ? "A1" : "A2")
+    : (stage.segment === "rsvpd" ? "B1" : "B2");
+  const cell = matrix.cells[cellKey];
+
+  if (!matrix.partitionOk) {
+    return { status: 409, payload: { ok: false,
+      error: "the four audiences are not a clean partition; nothing was sent",
+      overlaps: matrix.overlaps, missingFromCells: matrix.missingFromCells,
+      notInMaster: matrix.notInMaster, total: matrix.total,
+      unionSize: matrix.unionSize, masterAudience: matrix.masterAudience } };
+  }
+  if (!cell) {
+    return { status: 500, payload: { ok: false, error: "stage does not map to a known cell" } };
+  }
+  if (Object.keys(aud.droppedBySender || {}).length) {
+    return { status: 409, payload: { ok: false,
+      error: "the sender excluded addresses the sheet did not; nothing was sent",
+      droppedBySender: aud.droppedBySender } };
+  }
+  if (aud.fingerprintAsSheetSaw !== cell.fingerprint ||
+      aud.fingerprintAsDelivered !== cell.fingerprint) {
+    return { status: 409, payload: { ok: false,
+      error: "this audience is no longer the one that was proved disjoint; nothing was sent",
+      cell: cellKey, provedFingerprint: cell.fingerprint,
+      liveFingerprint: aud.fingerprintAsDelivered } };
+  }
+  if (cell.count !== aud.count) {
+    return { status: 409, payload: { ok: false,
+      error: "the cell count and the fetched audience disagree; nothing was sent",
+      cell: cellKey, proved: cell.count, fetched: aud.count } };
+  }
+  return null;
+}
+
+/* Live audience, straight from the sheet. Never cached, never stored. */
+async function liveAudience(clinicId, segment, attended, attendedClinicId) {
+  const ask = {
     kind: "event_audience", secret: SHEETS_WEBHOOK_SECRET,
     clinicId: clinicId, segment: segment
-  }), TIMEOUT_MS);
+  };
+  if (attended === true || attended === false) {
+    ask.attended = attended;
+    ask.attendedClinicId = attendedClinicId;
+  }
+  const posted = await postFresh(SHEETS_WEBHOOK_URL, JSON.stringify(ask), TIMEOUT_MS);
   let raw = posted.raw;
   if (posted.location) {
     const echo = await getEcho(posted.location, TIMEOUT_MS, 0);
@@ -150,8 +232,16 @@ async function liveAudience(clinicId, segment) {
     kept.push({ email: check.email, athletes: Array.isArray(h.athletes) ? h.athletes : [] });
   });
   kept.sort(function (a, b) { return a.email < b.email ? -1 : 1; });
+  /* Two fingerprints, deliberately. `asDelivered` is who would actually be
+     emailed; `asSheetSaw` is the set the Apps Script fingerprinted and proved
+     disjoint. They differ only if the two copies of the exclusion rules
+     disagree, and a live send refuses when they do - a rule that has drifted
+     apart is exactly the condition under which a partition proof stops
+     describing what is about to happen. */
+  out.fingerprintAsSheetSaw = fingerprint(out.households.map(function (h) { return h.email; }));
   out.households = kept;
   out.count = kept.length;
+  out.fingerprintAsDelivered = fingerprint(kept.map(function (h) { return h.email; }));
   out.droppedBySender = dropped;
   return out;
 }
@@ -214,6 +304,8 @@ module.exports = async function handler(req, res) {
     stage: stageName,
     stageLabel: stage.label,
     segment: stage.segment,
+    attended: (stage.attended === true || stage.attended === false) ? stage.attended : null,
+    attendedClinicId: stage.attendedClinicId || null,
     offsetDays: stage.offsetDays,
     from: senderAddress() ? FROM_DISPLAY + " <" + senderAddress() + ">" : null,
     reply_to: J.MAIL_TO,
@@ -241,9 +333,19 @@ module.exports = async function handler(req, res) {
       return res.status(503).json({ ok: false, error: "audience source not configured" });
     }
     let aud;
-    try { aud = await liveAudience(clinicId, stage.segment); }
+    try { aud = await liveAudience(clinicId, stage.segment, stage.attended, stage.attendedClinicId); }
     catch (e) { return res.status(502).json({ ok: false, error: "audience unavailable" }); }
     if (!aud) return res.status(502).json({ ok: false, error: "audience unavailable" });
+
+    /* For a stage with an attendance dimension, planning also returns the
+       whole 2x2 and its proof, so the partition is something a person can
+       read and approve BEFORE the send rather than something the sender
+       asserts at the moment it matters least. */
+    let matrix = null;
+    if (stage.attendedClinicId) {
+      try { matrix = await liveMatrix(clinicId, stage.attendedClinicId); }
+      catch (e) { matrix = null; }
+    }
 
     /* Counts and reasons only. No address ever leaves this endpoint. */
     const withAthletes = aud.households.filter(function (h) { return h.athletes.length > 0; }).length;
@@ -259,6 +361,15 @@ module.exports = async function handler(req, res) {
       withResolvableSession: renderable,
       excludedBySheet: aud.excluded,
       excludedBySender: aud.droppedBySender,
+      fingerprint: aud.fingerprintAsDelivered,
+      attendanceRows: aud.attendanceRows || null,
+      attendedHouseholds: aud.attendedHouseholds != null ? aud.attendedHouseholds : null,
+      matrix: matrix ? {
+        cells: matrix.cells, total: matrix.total, unionSize: matrix.unionSize,
+        masterAudience: matrix.masterAudience, overlaps: matrix.overlaps,
+        missingFromCells: matrix.missingFromCells, notInMaster: matrix.notInMaster,
+        partitionOk: matrix.partitionOk, computedAt: matrix.computedAt
+      } : null,
       computedAt: aud.computedAt,
       confirmPhrase: identity.confirmPhrase
     });
@@ -299,9 +410,33 @@ module.exports = async function handler(req, res) {
   }
 
   let aud;
-  try { aud = await liveAudience(clinicId, stage.segment); }
+  try { aud = await liveAudience(clinicId, stage.segment, stage.attended, stage.attendedClinicId); }
   catch (e) { return res.status(502).json({ ok: false, error: "audience unavailable; nothing sent" }); }
   if (!aud) return res.status(502).json({ ok: false, error: "audience unavailable; nothing sent" });
+
+  /* ------------------------------------------------------- PARTITION GATE --
+     For a four-way stage, the count gate below is necessary but nowhere near
+     sufficient. It answers "is this cell the size I approved?" and says
+     nothing about whether the four cells still tile the audience: a bug that
+     put one household in both A1 and A2 would sail through four count checks
+     and send that family two different emails.
+
+     So before anything is sent, the whole 2x2 is recomputed in the sheet and
+     must come back provably disjoint and complete, and THIS cell's addresses
+     must hash to the fingerprint the sheet proved. Every failure below
+     refuses; none of them degrade to a warning. */
+  let matrix = null;
+  if (stage.attendedClinicId) {
+    try { matrix = await liveMatrix(clinicId, stage.attendedClinicId); }
+    catch (e) { matrix = null; }
+
+    const verdict = partitionVerdict(matrix, aud, stage);
+    if (verdict) {
+      console.error("[event-campaign] LIVE refused -", verdict.payload.error,
+                    clinicId, stageName);
+      return res.status(verdict.status).json(verdict.payload);
+    }
+  }
 
   /* The gate. Deliberately exact: a single new RSVP moves the count and stops
      the send until a person has looked again. */
@@ -354,6 +489,8 @@ module.exports = async function handler(req, res) {
     ok: true, mode, identity,
     audienceTotal: aud.count,
     audienceVerified: true,
+    partitionVerified: matrix ? matrix.partitionOk : null,
+    audienceFingerprint: aud.fingerprintAsDelivered,
     computedAt: aud.computedAt,
     offset, requested: slice.length, accepted,
     failures: results.filter(function (r) { return !r.ok; }),
@@ -362,5 +499,7 @@ module.exports = async function handler(req, res) {
 };
 
 module.exports.confirmPhrase = confirmPhrase;
+module.exports.partitionVerdict = partitionVerdict;
+module.exports.fingerprint = fingerprint;
 module.exports.SAMPLES = SAMPLES;
 module.exports.MAX_SLICE = MAX_SLICE;
