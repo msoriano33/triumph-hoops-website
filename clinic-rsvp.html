@@ -138,7 +138,9 @@
           </div>
           <div class="field">
             <label class="label" for="cl-grade">Grade</label>
-            <select class="select" id="cl-grade"></select>
+            <select class="select" id="cl-grade" data-canon="grade" data-canon-program="junior_wolves">
+              <!--CANON:grade:junior_wolves--><option value="">Select</option><option value="3">3rd Grade</option><option value="4">4th Grade</option><option value="5">5th Grade</option><option value="6">6th Grade</option><option value="7">7th Grade</option><option value="8">8th Grade</option><!--/CANON-->
+            </select>
           </div>
 
           <button class="btn btn--primary btn--block" type="button" data-cr-find>Find my player</button>
@@ -196,17 +198,32 @@
           <div class="field-row">
             <div class="field">
               <label class="label" for="cr-grade">Grade</label>
-              <select class="select" id="cr-grade" name="grade" required></select>
+              <select class="select" id="cr-grade" name="grade"
+                      data-canon="grade" data-canon-program="junior_wolves" required>
+                <!--CANON:grade:junior_wolves--><option value="">Select</option><option value="3">3rd Grade</option><option value="4">4th Grade</option><option value="5">5th Grade</option><option value="6">6th Grade</option><option value="7">7th Grade</option><option value="8">8th Grade</option><!--/CANON-->
+              </select>
             </div>
             <div class="field">
               <label class="label" for="cr-age">Age</label>
-              <select class="select" id="cr-age" name="age" required></select>
+              <select class="select" id="cr-age" name="age"
+                      data-canon="age" data-canon-program="junior_wolves" required>
+                <!--CANON:age:junior_wolves--><option value="">Select</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><!--/CANON-->
+              </select>
             </div>
           </div>
 
           <div class="field">
             <label class="label" for="cr-school">School</label>
-            <input class="input" id="cr-school" name="school" type="text" autocomplete="off" required>
+            <select class="select" id="cr-school" name="school_code"
+                    data-canon="school" data-canon-reveals="cr-school-other-field" required>
+              <!--CANON:school--><option value="">Select</option><option value="CULVER">Clarence E. Culver School</option><option value="DECATUR_CLASSICAL">Decatur Classical School</option><option value="FAIRVIEW_SOUTH">Fairview South School</option><option value="HILLEL_TORAH">Hillel Torah North Suburban Day School</option><option value="LINCOLN_HALL">Lincoln Hall</option><option value="LINCOLN_JH">Lincoln Junior High School</option><option value="MCC_ACADEMY">MCC Academy</option><option value="PARK_VIEW">Park View School</option><option value="POPE_JOHN_XXIII">Pope John XXIII School</option><option value="RUTLEDGE_HALL">Rutledge Hall</option><option value="SABIN_MAGNET">Sabin Magnet School</option><option value="ST_JOHN_BREBEUF">St. John Brebeuf School</option><option value="THOMAS_EDISON">Thomas Edison Elementary School</option><option value="OTHER">Other school</option><!--/CANON-->
+            </select>
+          </div>
+
+          <div class="field" id="cr-school-other-field" data-canon-other hidden>
+            <label class="label" for="cr-school-other">School name</label>
+            <input class="input" id="cr-school-other" name="school_other" type="text"
+                   autocomplete="off" maxlength="120">
           </div>
 
           <p class="eyebrow jw-rsvp-group">Parent / guardian &mdash; the adult we should contact</p>
@@ -289,6 +306,7 @@
 <script src="assets/js/site-data.js?v=20260922a"></script>
 <script src="assets/js/main.js?v=20260922a"></script>
 <script src="assets/js/clinics.js?v=20260929e"></script>
+<script src="assets/js/canonical.js?v=20260930a"></script>
 <script src="assets/js/clinic-rsvp.js?v=20260929d"></script>
 <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </body>

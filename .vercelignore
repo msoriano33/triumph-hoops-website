@@ -1,1 +1,6 @@
 ops/
+
+# QA and build tooling. Never served: tests carry synthetic fixtures and
+# the tools only generate files that are committed already built.
+tests/
+tools/

@@ -1123,20 +1123,25 @@
           <div class="field-row">
             <div class="field">
               <label class="label" for="jw-grade">Grade</label>
-              <select class="select" id="jw-grade" name="player_grade" required>
-                <option value="">Select</option>
-                <option>3rd grade</option>
-                <option>4th grade</option>
-                <option>5th grade</option>
-                <option>6th grade</option>
-                <option>7th grade</option>
-                <option>8th grade</option>
+              <select class="select" id="jw-grade" name="player_grade"
+                      data-canon="grade" data-canon-program="junior_wolves" required>
+                <!--CANON:grade:junior_wolves--><option value="">Select</option><option value="3">3rd Grade</option><option value="4">4th Grade</option><option value="5">5th Grade</option><option value="6">6th Grade</option><option value="7">7th Grade</option><option value="8">8th Grade</option><!--/CANON-->
               </select>
             </div>
             <div class="field">
               <label class="label" for="jw-school">Current school</label>
-              <input class="input" id="jw-school" name="school" type="text" required>
+              <select class="select" id="jw-school" name="school_code"
+                      data-canon="school" data-canon-reveals="jw-school-other-field" required>
+                <!--CANON:school--><option value="">Select</option><option value="CULVER">Clarence E. Culver School</option><option value="DECATUR_CLASSICAL">Decatur Classical School</option><option value="FAIRVIEW_SOUTH">Fairview South School</option><option value="HILLEL_TORAH">Hillel Torah North Suburban Day School</option><option value="LINCOLN_HALL">Lincoln Hall</option><option value="LINCOLN_JH">Lincoln Junior High School</option><option value="MCC_ACADEMY">MCC Academy</option><option value="PARK_VIEW">Park View School</option><option value="POPE_JOHN_XXIII">Pope John XXIII School</option><option value="RUTLEDGE_HALL">Rutledge Hall</option><option value="SABIN_MAGNET">Sabin Magnet School</option><option value="ST_JOHN_BREBEUF">St. John Brebeuf School</option><option value="THOMAS_EDISON">Thomas Edison Elementary School</option><option value="OTHER">Other school</option><!--/CANON-->
+              </select>
             </div>
+          </div>
+
+          <div class="field" id="jw-school-other-field" data-canon-other hidden>
+            <label class="label" for="jw-school-other">School name</label>
+            <input class="input" id="jw-school-other" name="school_other" type="text"
+                   autocomplete="off" maxlength="120">
+            <p class="field-hint">Type the school exactly as your family would write it.</p>
           </div>
 
           <div class="field">
@@ -1305,6 +1310,7 @@
 <script src="assets/js/site-data.js?v=20260831a"></script>
 <script src="assets/js/main.js?v=20260831a"></script>
 <script src="assets/js/clinics.js?v=20260929e"></script>
+<script src="assets/js/canonical.js?v=20260930a"></script>
 <script src="assets/js/forms.js?v=20260929c"></script>
 <!-- Back half of the clinic RSVP funnel. Inert unless the page was
      reached from clinic-rsvp with ?clinic=...&rsvp=1. -->

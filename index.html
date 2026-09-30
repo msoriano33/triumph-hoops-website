@@ -356,26 +356,16 @@
           <div class="field-row">
             <div class="field">
               <label class="label" for="gs-age">Player age</label>
-              <input class="input" id="gs-age" name="player_age" type="text" inputmode="numeric" required>
+              <select class="select" id="gs-age" name="player_age"
+                      data-canon="age" data-canon-program="triumph" required>
+                <!--CANON:age:triumph--><option value="">Select</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><!--/CANON-->
+              </select>
             </div>
             <div class="field">
               <label class="label" for="gs-grade">Current grade</label>
-              <select class="select" id="gs-grade" name="player_grade" required>
-                <option value="">Select</option>
-                <option>Not in school yet</option>
-                <option>Kindergarten</option>
-                <option>1st grade</option>
-                <option>2nd grade</option>
-                <option>3rd grade</option>
-                <option>4th grade</option>
-                <option>5th grade</option>
-                <option>6th grade</option>
-                <option>7th grade</option>
-                <option>8th grade</option>
-                <option>9th grade</option>
-                <option>10th grade</option>
-                <option>11th grade</option>
-                <option>12th grade</option>
+              <select class="select" id="gs-grade" name="player_grade"
+                      data-canon="grade" data-canon-program="triumph" required>
+                <!--CANON:grade:triumph--><option value="">Select</option><option value="PK">Not in school yet</option><option value="K">Kindergarten</option><option value="1">1st Grade</option><option value="2">2nd Grade</option><option value="3">3rd Grade</option><option value="4">4th Grade</option><option value="5">5th Grade</option><option value="6">6th Grade</option><option value="7">7th Grade</option><option value="8">8th Grade</option><option value="9">9th Grade</option><option value="10">10th Grade</option><option value="11">11th Grade</option><option value="12">12th Grade</option><!--/CANON-->
               </select>
             </div>
           </div>
@@ -495,6 +485,7 @@
 
 <script src="assets/js/site-data.js?v=20260831a"></script>
 <script src="assets/js/main.js?v=20260831a"></script>
+<script src="assets/js/canonical.js?v=20260930a"></script>
 <script src="assets/js/forms.js?v=20260831a"></script>
 <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </body>
