@@ -299,24 +299,12 @@
 
           <div class="field">
             <label class="label" for="tr-interest">Which training are you interested in?</label>
-            <select class="select" id="tr-interest" name="interest" required>
-              <option value="">Select</option>
-              <option>Weekly skills training</option>
-              <option>Sunday development training</option>
-              <option>Not sure — help me find the right fit</option>
-            </select>
+            <select class="select" id="tr-interest" name="interest" data-canon="interest" data-canon-source="weekly_training" required><!--CANON:interest:weekly_training--><option value="">Select</option><option value="WEEKLY_TRAINING">Weekly skills training</option><option value="SUNDAY_TRAINING">Sunday development training</option><option value="NOT_SURE">Not sure — help me find the right fit</option><!--/CANON--></select>
           </div>
 
           <div class="field">
             <label class="label" for="tr-experience">Basketball experience</label>
-            <select class="select" id="tr-experience" name="experience" required>
-              <option value="">Select</option>
-              <option>New to basketball</option>
-              <option>Park district / rec league</option>
-              <option>Some skills training</option>
-              <option>School team experience</option>
-              <option>Travel or AAU experience</option>
-            </select>
+            <select class="select" id="tr-experience" name="experience" data-canon="experience" data-canon-source="weekly_training" required><!--CANON:experience:weekly_training--><option value="">Select</option><option value="NEW_TO_BASKETBALL">New to basketball</option><option value="REC_LEAGUE">Park district / rec league</option><option value="SOME_TRAINING">Some skills training</option><option value="SCHOOL_TEAM_EXP">School team experience</option><option value="TRAVEL_AAU">Travel or AAU experience</option><!--/CANON--></select>
           </div>
 
           <div class="field-row">
