@@ -16,6 +16,8 @@
 (function () {
   "use strict";
 
+  var CANON = window.JW_CANON;
+
   var C = window.JW_CLINICS;
   if (!C) return;
 
@@ -65,7 +67,7 @@
     var name = splitName(payload.player_name);
     var grade = String(payload.player_grade || "").trim();
     var email = String(payload.parent_email || "").trim();
-    if (!name || C.grades.indexOf(grade) === -1 || !email) return;
+    if (!name || !CANON.gradeAllowed("junior_wolves", CANON.normaliseGrade(grade)) || !email) return;
 
     var sess = C.sessionFor ? C.sessionFor(clinic.id, grade) : null;
     var when = sess ? sess.label + " · " + sess.time : clinic.time;
@@ -83,7 +85,7 @@
       "</div>" +
       '<div class="field"><label class="label" for="cf-age">' + esc(name.first) + "&rsquo;s age</label>" +
         '<select class="select" id="cf-age"><option value="">Select</option>' +
-        C.ages.map(function (a) { return '<option value="' + a + '">' + a + "</option>"; }).join("") +
+        CANON.ageOptionsHtml("junior_wolves", false) +
         "</select></div>" +
       '<button class="btn btn--primary btn--block" type="button" id="cf-go">RSVP for the clinic</button>' +
       '<div class="form-status" id="cf-status" aria-live="polite"></div>' +

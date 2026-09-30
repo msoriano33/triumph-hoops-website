@@ -67,6 +67,61 @@
   var source = ((location.search.match(/[?&]source=([a-z0-9_-]{1,32})(?:&|$)/) || [])[1]) || "web";
   var selected = byId(requested) || byId(C.activeClinic) || upcoming[0];
 
+  /* ---------------------------------------------------------------------
+     CANONICAL FIELDS (Phase 2C). canonical.js is the one list of grades,
+     ages and schools; this page renders labels from it and submits codes.
+     --------------------------------------------------------------------- */
+  var CANON = window.JW_CANON;
+
+  /* "7th Grade" from whatever the record happens to hold - "7", "7th",
+     "7th grade". Historical rows predate the canonical codes, so reading has
+     to be forgiving even though writing is strict. */
+  function gradeText(v) {
+    var code = CANON ? CANON.normaliseGrade(v) : "";
+    var label = code && CANON ? CANON.gradeLabel(code) : "";
+    return label || (String(v == null ? "" : v).trim() + " grade");
+  }
+
+  function hydrateCanonical(root) {
+    if (window.TRIUMPH_CANON_HYDRATE) { window.TRIUMPH_CANON_HYDRATE(root); return; }
+    if (!CANON) return;
+    var nodes = Array.prototype.slice.call((root || document).querySelectorAll("[data-canon]"));
+    nodes.forEach(function (sel) {
+      var kind = sel.getAttribute("data-canon");
+      var program = sel.getAttribute("data-canon-program");
+      var html = kind === "grade" ? CANON.gradeOptionsHtml(program)
+               : kind === "age" ? CANON.ageOptionsHtml(program)
+               : kind === "school" ? CANON.schoolOptionsHtml() : null;
+      if (html == null) return;
+
+      var tmp = document.createElement("select"); tmp.innerHTML = html;
+      var want = Array.prototype.map.call(tmp.options, function (o) { return o.value; }).join("|");
+      var have = Array.prototype.map.call(sel.options, function (o) { return o.value; }).join("|");
+      if (want !== have) {
+        if (window.console && console.error) {
+          console.error("[canonical] options out of date for", sel.name || sel.id,
+            "- repaired from canonical.js v" + CANON.version);
+        }
+        var keep = sel.value; sel.innerHTML = html; sel.value = keep;
+      }
+
+      var revealsId = sel.getAttribute("data-canon-reveals");
+      var field = revealsId ? document.getElementById(revealsId) : null;
+      if (!field || sel.getAttribute("data-canon-wired")) return;
+      sel.setAttribute("data-canon-wired", "1");
+      var input = field.querySelector("input, textarea");
+      var sync = function () {
+        var isOther = sel.value === "OTHER";
+        field.hidden = !isOther;
+        if (!input) return;
+        if (isOther) input.setAttribute("required", "required");
+        else { input.removeAttribute("required"); input.value = ""; }
+      };
+      sel.addEventListener("change", sync);
+      sync();
+    });
+  }
+
   /* ---- Populate the controlled inputs -------------------------------- */
   var clinicSel = $("#cr-clinic", form);
   clinicSel.innerHTML = upcoming.map(function (c) {
@@ -74,10 +129,12 @@
       esc((c.short || c.date) + " · " + c.time) + "</option>";
   }).join("");
 
-  $("#cr-grade", form).innerHTML = '<option value="">Select</option>' +
-    C.grades.map(function (g) { return '<option value="' + g + '">' + g + "</option>"; }).join("");
-  $("#cr-age", form).innerHTML = '<option value="">Select</option>' +
-    C.ages.map(function (a) { return '<option value="' + a + '">' + a + "</option>"; }).join("");
+  /* Grade, age and school options are GENERATED into the page from
+     assets/js/canonical.js (tools/render-canonical-options.js) so the form
+     still works with JavaScript off and so a translated page can never change
+     a submitted value. All this does is verify they are current and wire the
+     "Other school" reveal. */
+  hydrateCanonical(form);
 
   /* ---- Event block follows the selected clinic ----------------------- */
   function render(c) {
@@ -146,7 +203,7 @@
         '<p class="eyebrow jw-rsvp-group" style="margin-bottom:.25rem">Already on the list</p>' +
         '<h2 class="h4" style="margin:0">' + esc(a.first) + " is already RSVPed for this clinic.</h2>" +
         '<div class="cr-card"><p class="cr-name">' + esc(a.first + " " + a.last) + "</p>" +
-          '<p class="cr-meta">' + esc(a.grade) + " grade</p>" +
+          '<p class="cr-meta">' + esc(gradeText(a.grade)) + "</p>" +
           '<p class="cr-session">' + esc(c.weekday + ", " + c.date) + "<br>" + esc(sessionLine(c, a.grade)) + "</p></div>" +
         '<p class="small muted" style="margin:0">Nothing else to do &mdash; we\'ll see you there.</p>' +
         '<button class="btn btn--outline btn--block" type="button" data-cr-go="lookup">RSVP a different player</button>';
@@ -159,13 +216,12 @@
       '<p class="eyebrow jw-rsvp-group" style="margin-bottom:.25rem">Found them</p>' +
       '<h2 class="h4" style="margin:0">Is this your player?</h2>' +
       '<div class="cr-card"><p class="cr-name">' + esc(a.first + " " + a.last) + "</p>" +
-        '<p class="cr-meta">' + esc(a.grade) + " grade</p>" +
+        '<p class="cr-meta">' + esc(gradeText(a.grade)) + "</p>" +
         '<p class="cr-session">' + esc(c.weekday + ", " + c.date) + "<br>" + esc(sessionLine(c, a.grade)) +
         "<br>" + esc(C.location.name) + "</p></div>" +
       (needsAge
         ? '<div class="field"><label class="label" for="cc-age">Age</label>' +
-          '<select class="select" id="cc-age" required><option value="">Select</option>' +
-          C.ages.map(function (x) { return '<option value="' + x + '">' + x + "</option>"; }).join("") +
+          '<select class="select" id="cc-age" required>' + CANON.ageOptionsHtml("junior_wolves") +
           '</select><p class="small muted" style="margin:.5rem 0 0">We ask once &mdash; it is the only thing we do not already have.</p></div>'
         : "") +
       '<button class="btn btn--primary btn--block" type="button" data-cr-confirm>Yes &mdash; RSVP ' + esc(a.first) + "</button>" +
@@ -242,7 +298,7 @@
       clinic: box.getAttribute("data-clinic"),
       player_first: box.getAttribute("data-first"),
       player_last: box.getAttribute("data-last"),
-      grade: box.getAttribute("data-grade"),
+      grade: CANON.normaliseGrade(box.getAttribute("data-grade")),
       age: ageSel ? ageSel.value : "",
       source: source
     };
@@ -341,8 +397,7 @@
   if (haveFunnel) {
     startClinic.innerHTML = clinicSel.innerHTML;
     startClinic.value = selected.id;
-    document.getElementById("cl-grade").innerHTML = '<option value="">Select</option>' +
-      C.grades.map(function (g) { return '<option value="' + g + '">' + g + "</option>"; }).join("");
+    hydrateCanonical(document.getElementById("cl-grade").closest("form") || document);
     startClinic.addEventListener("change", function () {
       var c = byId(startClinic.value) || selected;
       clinicSel.value = c.id;

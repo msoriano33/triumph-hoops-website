@@ -62,18 +62,20 @@
       { id: "2026-09-27", weekday: "Sunday", date: "September 27", ordinal: "September 27th", short: "Sun, Sept 27", time: "3:00–5:00 PM",   end: "17:00", year: 2026, entrance: null },
       { id: "2026-10-11", weekday: "Sunday", date: "October 11",   ordinal: "October 11th",   short: "Sun, Oct 11",  time: "11:00 AM–2:00 PM", end: "14:00", year: 2026, entrance: null,
         sessions: [
-          { id: "younger", label: "3rd–6th Grade", grades: ["3rd", "4th", "5th", "6th"], time: "11:00 AM–12:30 PM", start: "11:00", end: "12:30" },
-          { id: "older",   label: "7th–8th Grade", grades: ["7th", "8th"],               time: "12:30–2:00 PM",     start: "12:30", end: "14:00" }
+          { id: "younger", label: "3rd–6th Grade", grades: ["3", "4", "5", "6"], time: "11:00 AM–12:30 PM", start: "11:00", end: "12:30" },
+          { id: "older",   label: "7th–8th Grade", grades: ["7", "8"],               time: "12:30–2:00 PM",     start: "12:30", end: "14:00" }
         ] },
       { id: "2026-10-25", weekday: "Sunday", date: "October 25",   ordinal: "October 25th",   short: "Sun, Oct 25",  time: "3:00–6:00 PM",   end: "18:00", year: 2026, entrance: null,
         sessions: [
-          { id: "younger", label: "3rd–6th Grade", grades: ["3rd", "4th", "5th", "6th"], time: "3:00–4:30 PM", start: "15:00", end: "16:30" },
-          { id: "older",   label: "7th–8th Grade", grades: ["7th", "8th"],               time: "4:30–6:00 PM", start: "16:30", end: "18:00" }
+          { id: "younger", label: "3rd–6th Grade", grades: ["3", "4", "5", "6"], time: "3:00–4:30 PM", start: "15:00", end: "16:30" },
+          { id: "older",   label: "7th–8th Grade", grades: ["7", "8"],               time: "4:30–6:00 PM", start: "16:30", end: "18:00" }
         ] }
     ],
 
-    grades: ["3rd", "4th", "5th", "6th", "7th", "8th"],
-    ages: [7, 8, 9, 10, 11, 12, 13, 14, 15]
+    /* The allowed grade and age lists used to live here. They now live in
+       assets/js/canonical.js, which is the one list the forms, the server,
+       Apps Script and the Sheet validation all read. Two lists is how the
+       "7.º grado" rows got into MASTER. */
   };
 
 
@@ -88,14 +90,26 @@
     return null;
   };
 
+  /* Session grades are canonical codes ("3".."8"). A grade arriving here may
+     be canonical, or a historical spelling from the sheet ("7th", "7th
+     grade"), or a number. Compare on the integer so every one of those lands
+     in the same session - getting this wrong silently puts a 7th grader in
+     the 3rd-6th session, which is the kind of error nobody notices until a
+     family turns up at the wrong time. */
+  function gradeKey(v) {
+    var m = String(v == null ? "" : v).match(/(\d{1,2})/);
+    return m ? String(parseInt(m[1], 10)) : "";
+  }
+
   JW_CLINICS.sessionFor = function (clinicId, grade) {
     var c = JW_CLINICS.clinicById(clinicId);
     if (!c || !c.sessions) return null;
-    var g = String(grade == null ? "" : grade).trim().toLowerCase();
+    var g = gradeKey(grade);
+    if (!g) return null;
     for (var i = 0; i < c.sessions.length; i++) {
       var s = c.sessions[i];
       for (var j = 0; j < s.grades.length; j++) {
-        if (s.grades[j].toLowerCase() === g) return s;
+        if (gradeKey(s.grades[j]) === g) return s;
       }
     }
     return null;

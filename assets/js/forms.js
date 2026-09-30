@@ -78,7 +78,11 @@
 
   function validateForm(form) {
     var fields = $$("input, select, textarea", form).filter(function (el) {
-      return el.type !== "hidden" && !el.closest(".hp");
+      if (el.type === "hidden" || el.closest(".hp")) return false;
+      /* A revealed-on-demand field that is currently hidden is not part of
+         this submission and must not be validated. */
+      var other = el.closest("[data-canon-other]");
+      return !(other && other.hidden);
     });
     var firstBad = null;
     fields.forEach(function (el) {
@@ -280,7 +284,91 @@
     });
   }
 
-  function init() { $$("form[data-inquiry]").forEach(handle); }
+  /* ======================================================================
+     CANONICAL FIELDS  (Phase 2C)
+     ----------------------------------------------------------------------
+     The <option> markup is generated into the page by
+     tools/render-canonical-options.js so the forms still work with
+     JavaScript off. This code does two things on top of that:
+
+       1. VERIFIES the rendered options still match canonical.js. A page that
+          shipped stale is a silent data-quality bug - it would collect values
+          the server then rejects, and the family would see a refusal they
+          cannot act on. So it is repaired in place and reported loudly.
+
+       2. Runs the Other-school reveal.
+
+     It deliberately does NOT re-render as a matter of course. Rebuilding a
+     select on load would wipe a value the browser restored after a back
+     navigation, which families hit constantly on mobile.
+     ====================================================================== */
+  function canonOptionsMatch(select, expectedHtml) {
+    var tmp = document.createElement("select");
+    tmp.innerHTML = expectedHtml;
+    var want = $$("option", tmp).map(function (o) { return o.value; }).join("|");
+    var have = $$("option", select).map(function (o) { return o.value; }).join("|");
+    return want === have;
+  }
+
+  function hydrateCanonical(root) {
+    var C = window.JW_CANON;
+    if (!C) return;
+    $$("[data-canon]", root || document).forEach(function (sel) {
+      var kind = sel.getAttribute("data-canon");
+      var program = sel.getAttribute("data-canon-program");
+      var html;
+      if (kind === "grade") html = C.gradeOptionsHtml(program);
+      else if (kind === "age") html = C.ageOptionsHtml(program);
+      else if (kind === "school") html = C.schoolOptionsHtml();
+      else return;
+
+      if (!canonOptionsMatch(sel, html)) {
+        /* Loud on purpose. This should never happen; if it does, the built
+           page and the config have diverged and somebody needs to know. */
+        if (window.console && console.error) {
+          console.error("[canonical] options out of date for", sel.name || sel.id,
+            "- repaired from canonical.js v" + C.version +
+            ". Run tools/render-canonical-options.js and redeploy.");
+        }
+        var keep = sel.value;
+        sel.innerHTML = html;
+        sel.value = keep;
+      }
+
+      var revealsId = sel.getAttribute("data-canon-reveals");
+      if (revealsId) wireOtherReveal(sel, document.getElementById(revealsId));
+    });
+  }
+
+  /* "Other school" is the one option that asks for more. The text field is
+     hidden AND non-required until it is chosen, so a family who picked a real
+     school is never blocked by a field they cannot see. */
+  function wireOtherReveal(select, field) {
+    if (!field) return;
+    var input = $("input, textarea", field);
+    function sync() {
+      var isOther = select.value === "OTHER";
+      field.hidden = !isOther;
+      if (input) {
+        if (isOther) {
+          input.setAttribute("required", "required");
+        } else {
+          input.removeAttribute("required");
+          input.value = "";
+          clearError(input);
+        }
+      }
+    }
+    select.addEventListener("change", sync);
+    sync();
+  }
+
+  function init() {
+    hydrateCanonical(document);
+    $$("form[data-inquiry]").forEach(handle);
+  }
+
+  window.TRIUMPH_CANON_HYDRATE = hydrateCanonical;
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
