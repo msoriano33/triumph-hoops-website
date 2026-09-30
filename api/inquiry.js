@@ -161,6 +161,10 @@ function escapeHtml(value) {
 function displayValue(key, fields) {
   const raw = clean(fields[key]);
   if (key === "player_grade") return CANON.gradeLabel(raw) || raw;
+  /* Same reason as grade: the wire carries a code, a person reads a label. */
+  if (key === "experience" || key === "interest") {
+    return CANON.choiceForStorage(key, raw).display || raw;
+  }
   if (key === "school_code") {
     if (raw.toUpperCase() === "OTHER") {
       const typed = clean(fields.school_other, 120);
@@ -217,7 +221,9 @@ function buildSubject(fields) {
       parts.push("NEW INQUIRY — GET STARTED", who, player);
       break;
     default:
-      parts.push("NEW TRIUMPH INQUIRY", who, clean(fields.interest).toUpperCase());
+      parts.push("NEW TRIUMPH INQUIRY", who,
+        (CANON.choiceForStorage("interest", fields.interest).display ||
+         clean(fields.interest)).toUpperCase());
   }
 
   return parts.filter(Boolean).join(" — ").slice(0, 180);
@@ -357,7 +363,12 @@ function validate(fields) {
       grade: fields.player_grade,
       age: fields.player_age,
       school_code: wantsSchool ? fields.school_code : undefined,
-      school_other: fields.school_other
+      school_other: fields.school_other,
+      /* The last two fields that still submitted their own visible label.
+         Validated per program for the same reason as grade: the Junior
+         Wolves experience list and the Triumph one are different lists. */
+      experience: fields.experience,
+      interest: fields.interest
     }, { requireSchool: wantsSchool }).forEach((e) => errors.push(e));
   }
 
@@ -424,7 +435,11 @@ async function logToSheet(fields, submissionId) {
     parentName: clean(fields.parent_name, 200),
     parentEmail: clean(fields.parent_email, 200),
     parentPhone: clean(fields.parent_phone, 60),
-    experience: clean(fields.experience, 200),
+    /* The canonical LABEL, looked up by this server from the code the browser
+       sent - never the browser's own text. That is what makes a translated
+       page unable to change what lands here, and it keeps the column reading
+       the same as the 233 rows already in it. */
+    experience: CANON.choiceForStorage("experience", fields.experience).display,
     currentTeam: clean(fields.current_team, 200),
     notes: clean(fields.message, 2000),
     eligibilityAcknowledged: fields.district_confirm ? "Yes" : "No",
