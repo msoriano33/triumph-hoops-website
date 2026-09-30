@@ -653,8 +653,24 @@ module.exports = async function handler(req, res) {
 
      Any failure here is logged and swallowed. The registration is already
      captured, and no email outcome may change what the family is told. */
+  /* THE SAME TWO-KINDS-OF-DUPLICATE PROBLEM AS THE CLINIC RSVP PATH.
+     writeToSheet asks once; on a timeout it asks AGAIN with the same
+     submissionId, and because doPost is idempotent on that id the second ask
+     finds the row it already wrote and reports duplicate:true with slow:true.
+
+     That is OUR OWN write landing late - a real new registration that has
+     never been confirmed - not a family submitting twice. A genuine rapid
+     re-submission carries a DIFFERENT submissionId and is caught on the FIRST
+     ask, where slow is not set.
+
+     Gating on !sheet.duplicate alone therefore silently dropped the
+     confirmation for every registration whose write ran slow, which is the
+     same defect found on the RSVP path on 2026-09-30. Provider idempotency
+     (jw-tryout-confirm-<submissionId>) remains the backstop against a real
+     double-send. */
   let tryoutConfirmation = "skipped";
-  if (fields.source === "junior_wolves_tryout" && sheet.logged && !sheet.duplicate) {
+  if (fields.source === "junior_wolves_tryout" && sheet.logged &&
+      (!sheet.duplicate || sheet.slow === true)) {
     const next = JW.CLINICS.nextClinic();
     const clinicId = next ? next.id : null;
     const alreadyRsvpd = await clinicRsvpState(fields, clinicId);
@@ -699,7 +715,8 @@ module.exports = async function handler(req, res) {
      page runs one form in two modes, and in "open" mode it posts
      junior_wolves_tryout, so no interest row can arrive. */
   let interestAck = "skipped";
-  if (fields.source === "junior_wolves_interest" && sheet.logged && !sheet.duplicate) {
+  if (fields.source === "junior_wolves_interest" && sheet.logged &&
+      (!sheet.duplicate || sheet.slow === true)) {
     const nextClinic = JW.CLINICS.nextClinic();
     const ack = await INTEREST_ACK.send({
       to: clean(fields.parent_email, 200),
