@@ -67,6 +67,34 @@ const SHEET_CONFIRM_MS = 2000;
 
 /* Only Junior Wolves submissions go to the registration database. Every other
    Triumph form keeps its existing email-only behaviour. */
+/* Sources that are ABOUT an athlete, and therefore must carry a player name.
+
+   player_name was marked required in the browser and never checked here, so
+   a submission that skipped the browser - JS off, a stale cached page, curl -
+   was accepted with no athlete name at all. Two things then go wrong, and the
+   second is the dangerous one:
+
+     1. ciResolveIdentity_ correctly refuses to guess, so the Athlete ID stays
+        blank and somebody has to chase it by hand.
+     2. doPost's duplicate window keys on the player's full name. Two NAMELESS
+        submissions from the same parent email therefore look like the same
+        person, and the second is silently discarded as a duplicate. Two
+        siblings registered that way become one row and one child disappears.
+
+   Found by a QA registration during Phase 2C that landed with a blank name
+   and was then deduplicated against a second one. This is the same principle
+   as the grade and school work: the browser dropdown is a convenience, the
+   server is the authority.
+
+   coaching_interest and general_contact are deliberately absent - a coach
+   applying to help does not have an athlete, and requiring one would reject
+   a real person. */
+var PLAYER_NAME_SOURCES = new Set([
+  "homepage_get_started", "weekly_training", "sunday_training",
+  "development_team_interest", "aau_travel_interest",
+  "junior_wolves_tryout", "junior_wolves_interest"
+]);
+
 const SHEET_SOURCES = new Set(["junior_wolves_tryout", "junior_wolves_interest"]);
 
 /* --------------------------------------------------------------------------
@@ -319,6 +347,9 @@ function validate(fields) {
 
   if (!fields.source || !VALID_SOURCES.includes(fields.source)) errors.push("Unknown form source.");
   if (!fields.parent_name) errors.push("Parent / guardian name is required.");
+  if (PLAYER_NAME_SOURCES.has(fields.source) && !String(fields.player_name || "").trim()) {
+    errors.push("Player name is required.");
+  }
   if (!fields.parent_email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(fields.parent_email)) {
     errors.push("A valid email address is required.");
   }
