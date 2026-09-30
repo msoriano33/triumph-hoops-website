@@ -209,6 +209,82 @@
        Triumph training enquiry would reject real families. Different subsets,
        ONE list.
        ---------------------------------------------------------------------- */
+    /* ----------------------------------------------------------------------
+       CHOICE FIELDS: EXPERIENCE AND INTEREST
+       ----------------------------------------------------------------------
+       The same defect as grade, in the last two fields that still had it.
+       Both were rendered as <option>Park district / rec league</option> with
+       no value attribute, so the submitted value WAS the visible label, and a
+       family reading the page through browser translation submitted the
+       translated label.
+
+       This is not hypothetical here either. MASTER REGISTRATIONS holds two
+       rows reading "Principiante en el baloncesto organizado" - the same
+       family whose grade arrived as "7.º grado". One interest submission, one
+       tryout registration. The earlier audit checked the sizing fields, found
+       them clean, and did not check this one.
+
+       WHAT IS STORED, AND WHY IT IS THE LABEL RATHER THAN THE CODE.
+       Grade and school store codes because the audience builder, the session
+       split and the canonical athlete layer all key on them. Nothing keys on
+       experience or interest - they are read by a human in a sheet or an
+       email. So the wire carries the CODE, the server validates the CODE, and
+       the server then writes the canonical LABEL it looked up itself.
+
+       That closes the translation hole just as completely, because the server
+       never stores browser text either way, and it keeps the column readable
+       and identical in shape to the 233 rows already there. Storing codes
+       would have meant a mixed column and a migration for no operational
+       gain.
+       ---------------------------------------------------------------------- */
+    experienceOptions: [
+      { value: "NEW_TO_BASKETBALL", label: "New to basketball" },
+      { value: "NEW_TO_ORGANIZED",  label: "New to organized basketball" },
+      { value: "REC_LEAGUE",        label: "Park district / rec league" },
+      { value: "SOME_TRAINING",     label: "Some skills training" },
+      { value: "SCHOOL_TEAM",       label: "School team" },
+      { value: "SCHOOL_TEAM_EXP",   label: "School team experience" },
+      { value: "FEEDER_OR_TRAVEL",  label: "Previous feeder or travel team" },
+      { value: "TRAVEL_AAU",        label: "Travel or AAU experience" }
+    ],
+
+    interestOptions: [
+      { value: "WEEKLY_TRAINING",  label: "Weekly skills training" },
+      { value: "SUNDAY_TRAINING",  label: "Sunday development training" },
+      { value: "DEVELOPMENT_TEAM", label: "Development team" },
+      { value: "AAU_TRAVEL",       label: "AAU / travel team" },
+      { value: "NOT_SURE",         label: "Not sure — help me find the right fit" }
+    ],
+
+    /* Which options each PAGE offers. Two Triumph pages sit in the same
+       program and offer different interest lists - training.html does not
+       offer a team, teams.html does not offer weekly training - so the
+       rendered subset belongs to the form, not to the program.
+
+       The program's ALLOWED set is then computed as the union of its forms'
+       subsets rather than written out again, because a second hand-kept list
+       is exactly the thing this phase exists to remove. */
+    formOptions: {
+      junior_wolves_tryout: {
+        experience: ["NEW_TO_ORGANIZED", "REC_LEAGUE", "SCHOOL_TEAM", "FEEDER_OR_TRAVEL", "TRAVEL_AAU"]
+      },
+      junior_wolves_interest: {
+        experience: ["NEW_TO_ORGANIZED", "REC_LEAGUE", "SCHOOL_TEAM", "FEEDER_OR_TRAVEL", "TRAVEL_AAU"]
+      },
+      homepage_get_started: {
+        experience: ["NEW_TO_BASKETBALL", "REC_LEAGUE", "SOME_TRAINING", "SCHOOL_TEAM_EXP", "TRAVEL_AAU"],
+        interest: ["WEEKLY_TRAINING", "SUNDAY_TRAINING", "DEVELOPMENT_TEAM", "AAU_TRAVEL", "NOT_SURE"]
+      },
+      weekly_training: {
+        experience: ["NEW_TO_BASKETBALL", "REC_LEAGUE", "SOME_TRAINING", "SCHOOL_TEAM_EXP", "TRAVEL_AAU"],
+        interest: ["WEEKLY_TRAINING", "SUNDAY_TRAINING", "NOT_SURE"]
+      },
+      development_team_interest: {
+        experience: ["NEW_TO_BASKETBALL", "REC_LEAGUE", "SOME_TRAINING", "SCHOOL_TEAM_EXP", "TRAVEL_AAU"],
+        interest: ["DEVELOPMENT_TEAM", "AAU_TRAVEL", "NOT_SURE"]
+      }
+    },
+
     programs: {
       junior_wolves: {
         label: "Junior Wolves",
@@ -452,6 +528,16 @@
       }
     }
 
+    ["experience", "interest"].forEach(function (kind) {
+      var v = fields[kind];
+      if (v === undefined || v === null || String(v).trim() === "") return;
+      if (!JW_CANON.choiceAllowed(kind, programName, v)) {
+        errors.push(kind === "interest"
+          ? "Please choose an option from the list."
+          : "Please choose a basketball experience level from the list.");
+      }
+    });
+
     if (p.collectsSchool) {
       var code = String(fields.school_code == null ? "" : fields.school_code).trim().toUpperCase();
       if (!code) {
@@ -464,6 +550,76 @@
     }
 
     return errors;
+  };
+
+  /* ---------------------- CHOICE FIELDS ---------------------- */
+
+  function choiceList(kind) {
+    return kind === "interest" ? JW_CANON.interestOptions : JW_CANON.experienceOptions;
+  }
+
+  JW_CANON.choiceByValue = function (kind, v) {
+    var code = String(v == null ? "" : v).trim();
+    var list = choiceList(kind);
+    for (var i = 0; i < list.length; i++) if (list[i].value === code) return list[i];
+    return null;
+  };
+
+  /* A page cached before this change still posts the visible English label.
+     Accepting the EXACT canonical label - and nothing else - keeps that
+     family's submission working without reopening the hole, because a
+     translated label is not one of these strings. This is the adapter, and
+     it is deliberately this narrow. */
+  JW_CANON.choiceByLabel = function (kind, v) {
+    var want = fold(v);
+    if (!want) return null;
+    var list = choiceList(kind);
+    for (var i = 0; i < list.length; i++) if (fold(list[i].label) === want) return list[i];
+    return null;
+  };
+
+  /* Codes a given form renders. */
+  JW_CANON.choicesForSource = function (kind, source) {
+    var f = JW_CANON.formOptions[source];
+    var codes = f && f[kind] ? f[kind] : null;
+    if (!codes) return [];
+    return codes.map(function (c) { return JW_CANON.choiceByValue(kind, c); })
+                .filter(function (x) { return !!x; });
+  };
+
+  /* Codes a PROGRAM accepts: the union of every form that belongs to it.
+     Computed, never written down twice. */
+  JW_CANON.choicesForProgram = function (kind, programName) {
+    var seen = {}, out = [];
+    Object.keys(JW_CANON.formOptions).forEach(function (source) {
+      if (JW_CANON.sourceProgram[source] !== programName) return;
+      (JW_CANON.formOptions[source][kind] || []).forEach(function (code) {
+        if (seen[code]) return;
+        seen[code] = true;
+        var item = JW_CANON.choiceByValue(kind, code);
+        if (item) out.push(item);
+      });
+    });
+    return out;
+  };
+
+  JW_CANON.choiceAllowed = function (kind, programName, v) {
+    var item = JW_CANON.choiceByValue(kind, v) || JW_CANON.choiceByLabel(kind, v);
+    if (!item) return false;
+    var allowed = JW_CANON.choicesForProgram(kind, programName);
+    for (var i = 0; i < allowed.length; i++) if (allowed[i].value === item.value) return true;
+    return false;
+  };
+
+  /* What gets written: the canonical label, resolved here from the code the
+     browser sent. Never the browser's own text. */
+  JW_CANON.choiceForStorage = function (kind, v) {
+    var item = JW_CANON.choiceByValue(kind, v) || JW_CANON.choiceByLabel(kind, v);
+    return item ? { code: item.value, display: item.label } : { code: "", display: "" };
+  };
+
+  JW_CANON.choiceOptionsHtml = function (kind, source, placeholder) {
+    return JW_CANON.optionsHtml(JW_CANON.choicesForSource(kind, source), placeholder);
   };
 
   /* What actually gets written for the School column, given a validated

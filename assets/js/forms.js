@@ -320,6 +320,11 @@
       if (kind === "grade") html = C.gradeOptionsHtml(program);
       else if (kind === "age") html = C.ageOptionsHtml(program);
       else if (kind === "school") html = C.schoolOptionsHtml();
+      /* Scoped to the FORM, not the program: two Triumph pages share a
+         program and deliberately offer different interest lists. */
+      else if (kind === "experience" || kind === "interest") {
+        html = C.choiceOptionsHtml(kind, sel.getAttribute("data-canon-source"));
+      }
       else return;
 
       if (!canonOptionsMatch(sel, html)) {
