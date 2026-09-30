@@ -35,6 +35,8 @@ const RESEND_URL = "https://api.resend.com/emails";
 
 const crypto = require("crypto");
 const TRYOUT_CONFIRMATION = require("../lib/tryout-confirmation.js");
+const INTEREST_ACK = require("../lib/interest-acknowledgement.js");
+const CLOG = require("../lib/confirmation-log.js");
 const JW = require("../lib/jw-email.js");
 
 /* --------------------------------------------------------------------------
@@ -670,6 +672,58 @@ module.exports = async function handler(req, res) {
       : ("not-sent:" + (out.reason || "unknown"));
     if (!out.sent) console.error("[inquiry] tryout confirmation", submissionId, tryoutConfirmation, out.detail || "");
     else console.log("[inquiry] tryout confirmation", submissionId, tryoutConfirmation);
+    await CLOG.recordSend({
+      recordType: "tryout_registration", recordId: submissionId,
+      recipient: clean(fields.parent_email, 200),
+      confirmationType: "tryout_confirmation"
+    }, out);
+  } else if (fields.source === "junior_wolves_tryout") {
+    /* Eligible but suppressed. The commonest cause is an unverified sheet
+       write - the row usually lands anyway, which is exactly the gap the
+       recovery pass is for. Record it so it is visible, not silent. */
+    await CLOG.recordSkip({
+      recordType: "tryout_registration", recordId: submissionId,
+      recipient: clean(fields.parent_email, 200),
+      confirmationType: "tryout_confirmation"
+    }, sheet.duplicate ? "SKIPPED_DUPLICATE" : "SKIPPED_UNVERIFIED_WRITE",
+       sheet.duplicate ? "duplicate-submission" : "sheet-write-unverified");
+  }
+
+  /* ---- interest acknowledgement -------------------------------------
+     The 94 historical interest submissions never got anything. This is the
+     receipt for future ones. It fires only for NEW interest rows, and only
+     when the sheet confirmed the write - the same conservative gate the
+     tryout confirmation uses.
+
+     Note it is dormant while tryout registration is open: the Junior Wolves
+     page runs one form in two modes, and in "open" mode it posts
+     junior_wolves_tryout, so no interest row can arrive. */
+  let interestAck = "skipped";
+  if (fields.source === "junior_wolves_interest" && sheet.logged && !sheet.duplicate) {
+    const nextClinic = JW.CLINICS.nextClinic();
+    const ack = await INTEREST_ACK.send({
+      to: clean(fields.parent_email, 200),
+      first: splitName(fields.player_name).first,
+      grade: clean(fields.player_grade, 60),
+      clinicId: nextClinic ? nextClinic.id : null,
+      tryoutOpen: false,
+      submissionId: submissionId
+    });
+    interestAck = ack.sent ? "sent" : ("not-sent:" + (ack.reason || "unknown"));
+    if (!ack.sent) console.error("[inquiry] interest ack", submissionId, interestAck, ack.detail || "");
+    else console.log("[inquiry] interest ack", submissionId, interestAck);
+    await CLOG.recordSend({
+      recordType: "jw_interest", recordId: submissionId,
+      recipient: clean(fields.parent_email, 200),
+      confirmationType: "interest_acknowledgement"
+    }, ack);
+  } else if (fields.source === "junior_wolves_interest") {
+    await CLOG.recordSkip({
+      recordType: "jw_interest", recordId: submissionId,
+      recipient: clean(fields.parent_email, 200),
+      confirmationType: "interest_acknowledgement"
+    }, sheet.duplicate ? "SKIPPED_DUPLICATE" : "SKIPPED_UNVERIFIED_WRITE",
+       sheet.duplicate ? "duplicate-submission" : "sheet-write-unverified");
   }
 
   /* ---- one clear server-side line per outcome, for diagnosis ---- */
@@ -702,7 +756,8 @@ module.exports = async function handler(req, res) {
       submissionId: submissionId,
       emailDelivered: email.sent,
       sheetLogged: !!sheet.logged,
-      confirmation: tryoutConfirmation
+      confirmation: tryoutConfirmation,
+      interestAck: interestAck
     });
   }
 

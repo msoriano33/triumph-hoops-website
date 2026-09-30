@@ -39,6 +39,7 @@ const https = require("https");
 const http = require("http");
 const CLINICS = require("../assets/js/clinics.js");
 const CONFIRMATION = require("../lib/rsvp-confirmation.js");
+const CLOG = require("../lib/confirmation-log.js");
 
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || "";
 const SHEETS_WEBHOOK_SECRET = process.env.SHEETS_WEBHOOK_SECRET || "";
@@ -338,9 +339,27 @@ module.exports = async function handler(req, res) {
       });
       confirmation = sent.sent ? "sent" : ("not-sent:" + (sent.reason || "unknown"));
       if (!sent.sent) console.error("[clinic-rsvp] confirmation", rsvpId, confirmation, sent.detail || "");
+      /* Durable evidence. Never blocks and never throws - a logging outage
+         must not cost the family their confirmation. */
+      await CLOG.recordSend({
+        recordType: "clinic_rsvp", recordId: result.rsvpId || rsvpId,
+        recipient: to, confirmationType: "rsvp_confirmation"
+      }, sent);
     } else {
       confirmation = "no-address-in-request";
+      await CLOG.recordSkip({
+        recordType: "clinic_rsvp", recordId: result.rsvpId || rsvpId,
+        confirmationType: "rsvp_confirmation"
+      }, "SKIPPED_NO_ADDRESS", "no-address-in-request");
     }
+  } else {
+    /* A duplicate or an already-listed athlete deliberately sends nothing.
+       Record WHY, so the gap report can tell "suppressed on purpose" apart
+       from "silently missed". */
+    await CLOG.recordSkip({
+      recordType: "clinic_rsvp", recordId: result.rsvpId || rsvpId,
+      recipient: f.parent_email || "", confirmationType: "rsvp_confirmation"
+    }, "SKIPPED_DUPLICATE", result.alreadyRsvpd ? "already-rsvpd" : "duplicate-write");
   }
   console.log("[clinic-rsvp] confirmation", rsvpId, confirmation);
 
