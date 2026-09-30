@@ -110,7 +110,11 @@ t("Junior Wolves limits are NOT applied to Triumph", () => {
 });
 
 section("Required regression cases — forged and translated values");
-const JW = { source: "junior_wolves_tryout", parent_name: "Qa Tester", parent_email: "triumphhoopsacademy@gmail.com",
+/* A registration always names the athlete. Leaving player_name out of this
+   fixture made every "valid submission" case here unlike a real one, which is
+   how the missing server-side name check went unnoticed. */
+const JW = { source: "junior_wolves_tryout", player_name: "Qa Testathlete",
+             parent_name: "Qa Tester", parent_email: "triumphhoopsacademy@gmail.com",
              jersey_size: "YM", shorts_size: "YM", acknowledgement: "yes" };
 const inq = (o) => INQUIRY.validate(Object.assign({}, JW, o));
 
@@ -131,6 +135,20 @@ t("forged school code is rejected", () => {
 });
 t("a canonical school LABEL is not accepted as a code", () => {
   assert.ok(inq({ player_grade: "7", school_code: "Park View School" }).length);
+});
+t("a registration with no player name is rejected", () => {
+  /* The gap this fixture used to hide. A nameless row cannot be linked to an
+     athlete, and doPost's duplicate window keys on the name - so two nameless
+     siblings from one parent silently become one row. */
+  const errs = INQUIRY.validate(Object.assign({}, JW, { player_name: "", player_grade: "7", school_code: "PARK_VIEW" }));
+  assert.ok(errs.some((e) => /player name/i.test(e)), errs.join(" "));
+  const blank = INQUIRY.validate(Object.assign({}, JW, { player_name: "   ", player_grade: "7", school_code: "PARK_VIEW" }));
+  assert.ok(blank.some((e) => /player name/i.test(e)), "whitespace passed as a name");
+});
+t("a coaching enquiry is NOT forced to name an athlete", () => {
+  const errs = INQUIRY.validate({ source: "coaching_interest", parent_name: "Qa Tester",
+    parent_email: "triumphhoopsacademy@gmail.com" });
+  assert.ok(!errs.some((e) => /player name/i.test(e)), errs.join(" "));
 });
 t("valid canonical submission passes", () => {
   assert.deepStrictEqual(inq({ player_grade: "7", school_code: "PARK_VIEW" }), []);
@@ -474,6 +492,35 @@ t("the parent-facing error names the field and not the code", () => {
   const errs = CANON.validateSubmission("triumph", { interest: "NONSENSE" }, {});
   assert.ok(errs.length === 1, errs.join(" "));
   assert.ok(!/NONSENSE|code|JW_CANON/i.test(errs[0]), errs[0]);
+});
+
+
+section("Player name is required where an athlete is the subject");
+
+t("every athlete-centric source demands a player name; coaching does not", () => {
+  /* Mirrors PLAYER_NAME_SOURCES in api/inquiry.js. Kept as a test rather than
+     an import because the endpoint is a Vercel handler, but the list is small
+     and the consequence of it drifting is a nameless registration. */
+  const fs = require("fs");
+  const path = require("path");
+  const src = fs.readFileSync(path.join(__dirname, "..", "api", "inquiry.js"), "utf8");
+  const m = /var PLAYER_NAME_SOURCES = new Set\(\[([\s\S]*?)\]\)/.exec(src);
+  assert.ok(m, "PLAYER_NAME_SOURCES not found in api/inquiry.js");
+  const listed = (m[1].match(/"([a-z_]+)"/g) || []).map((x) => x.replace(/"/g, ""));
+  ["junior_wolves_tryout", "junior_wolves_interest", "homepage_get_started",
+   "weekly_training", "development_team_interest"].forEach((src2) =>
+    assert.ok(listed.includes(src2), src2 + " may be submitted with no player name"));
+  assert.ok(!listed.includes("coaching_interest"),
+    "a coach applying has no athlete and must not be forced to invent one");
+});
+t("the check is actually wired into validate(), not just declared", () => {
+  /* A constant nobody reads is the classic dead guard. */
+  const fs = require("fs");
+  const path = require("path");
+  const src = fs.readFileSync(path.join(__dirname, "..", "api", "inquiry.js"), "utf8");
+  assert.ok(/PLAYER_NAME_SOURCES\.has\(fields\.source\)[\s\S]{0,120}player_name/.test(src),
+    "PLAYER_NAME_SOURCES is declared but never consulted");
+  assert.ok(/Player name is required/.test(src), "no parent-facing message for a missing name");
 });
 
 console.log("\n" + "=".repeat(60));
