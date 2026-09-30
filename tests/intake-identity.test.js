@@ -39,8 +39,8 @@ const H_IDX = { "Household ID": 0, "Primary Email": 1, "Primary Phone": 2,
 
 const HOUSEHOLDS = [
   ["ZZ-H-0001", "one@qa.invalid",   "(847) 555-0101", "",                 "",              ""],
-  ["ZZ-H-0002", "two@qa.invalid",   "8475550202",     "twob@qa.invalid",  "",              ""],
-  ["ZZ-H-0003", "three@qa.invalid", "",               "",                 "847-555-0303",  "third@qa.invalid"]
+  ["ZZ-H-0002", "two@qa.invalid",   "8475550102",     "twob@qa.invalid",  "",              ""],
+  ["ZZ-H-0003", "three@qa.invalid", "",               "",                 "847-555-0103",  "third@qa.invalid"]
 ];
 const ATHLETES = [
   ["ZZ-A-0001", "Ada",   "Quintero", "ZZ-H-0001"],
@@ -147,7 +147,7 @@ t("a phone with no email never opens a household on its own", () => {
   /* A phone alone can MATCH an existing household, but it is not enough to
      open one - the confirmation channel is email, so a household with no
      address is a record nobody can act on. */
-  ["555", "0000000000", "n/a", "3125550199"].forEach((p) => {
+  ["555", "0000000000", "n/a", "3125550104"].forEach((p) => {
     assert.strictEqual(resolve({ first: "Ada", last: "Quintero", email: "", phone: p }).action,
       "REVIEW", "phone " + p);
   });
