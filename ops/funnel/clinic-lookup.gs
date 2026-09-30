@@ -42,9 +42,17 @@ function mrNorm_(v) {
 }
 
 /* "8th grade" / "8TH" / "8" all collapse to "8th". */
+/* CANONICAL grade code from whatever MASTER happens to hold - "3", "3rd",
+   "3rd grade", 3. It used to return m[1] + 'th', which produced "3th" and
+   "1th". That was invisible while both sides of a comparison were equally
+   wrong, but the matched RSVP path WRITES this value into CLINIC RSVP, so
+   "3th" was landing in a column that now holds canonical codes. */
 function mrGrade_(v) {
-  var m = String(v == null ? '' : v).match(/(\d+)/);
-  return m ? m[1] + 'th' : '';
+  if (typeof JW_CANON !== 'undefined' && JW_CANON.normaliseGrade) {
+    return JW_CANON.normaliseGrade(v);
+  }
+  var m = String(v == null ? '' : v).match(/(\d{1,2})/);
+  return m ? String(parseInt(m[1], 10)) : '';
 }
 function gradeEq_(a, b) {
   var x = mrGrade_(a), y = mrGrade_(b);
@@ -219,7 +227,11 @@ function clinicRsvpMatched_(body) {
   var rowLast = idx['Player Last Name'] != null && found[idx['Player Last Name']]
     ? found[idx['Player Last Name']] : sp.last;
 
-  return clinicRsvp_({
+  /* The writer's answer, plus the parent address read from the sheet. That
+     address goes SERVER-TO-SERVER only, so the confirmation email can be
+     addressed without the browser ever holding it. api/clinic-rsvp.js strips
+     it before replying to the page. */
+  var written = clinicRsvp_({
     rsvpId: body.rsvpId,
     clinicId: body.clinicId,
     clinicIds: body.clinicIds,
@@ -234,4 +246,6 @@ function clinicRsvpMatched_(body) {
     parentEmail: String(found[idx['Parent Email']] || ''),
     source: body.source || 'funnel_matched'
   });
+  if (written && written.ok) written.parentEmail = String(found[idx['Parent Email']] || '');
+  return written;
 }

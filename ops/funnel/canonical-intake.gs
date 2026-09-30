@@ -368,6 +368,18 @@ function ciHouseholdsFor_(hRows, hIdx, email, phone) {
   return Object.keys(hits);
 }
 
+/* Addresses that are not a way to reach a family. A registration carrying one
+   is a test, a typo or a placeholder, and must not open a household. */
+var CI_PLACEHOLDER_DOMAINS = ['example.com', 'example.org', 'example.net',
+  'test.com', 'email.com', 'domain.com', 'none.com', 'noemail.com', 'invalid'];
+
+function ciPlaceholderEmail_(email) {
+  var at = String(email).lastIndexOf('@');
+  if (at === -1) return true;
+  var domain = String(email).slice(at + 1).toLowerCase();
+  return CI_PLACEHOLDER_DOMAINS.indexOf(domain) !== -1;
+}
+
 function ciNextId_(rows, idx, prefix) {
   var max = 0;
   for (var i = 0; i < rows.length; i++) {
@@ -388,7 +400,29 @@ function ciResolveIdentity_(master, athletes, aIdx, households, hIdx) {
   if (hh.length > 1) {
     return { action: 'REVIEW', reason: 'contact details match ' + hh.length + ' households' };
   }
-  var householdId = hh.length === 1 ? hh[0] : '';
+
+  /* A family nobody has seen before. This is the COMMON case for a new
+     registration, so refusing it would mean the sync did nothing for exactly
+     the situation it exists to handle.
+
+     Creating a household here is not a merge and cannot destroy anything: it
+     records that a new contact exists. The failure mode is a duplicate
+     household if the same family later writes their address differently -
+     visible in the sheet, and a minute to fix. The failure mode of the
+     opposite choice, attaching them to the nearest existing household, is
+     silent and permanent. */
+  if (!hh.length) {
+    var email = ciEmailKey_(master.email);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      return { action: 'REVIEW', reason: 'no household matches and no usable email to open one' };
+    }
+    if (ciPlaceholderEmail_(email)) {
+      return { action: 'REVIEW', reason: 'placeholder or test email address' };
+    }
+    return { action: 'CREATE_HOUSEHOLD', email: email, phone: ciStr_(master.phone) };
+  }
+
+  var householdId = hh[0];
 
   var candidates = [];
   for (var i = 0; i < athletes.length; i++) {
@@ -415,6 +449,69 @@ function ciResolveIdentity_(master, athletes, aIdx, households, hIdx) {
   return { action: 'CREATE', householdId: householdId };
 }
 
+/* A sibling joining a household that already exists. The authoritative link
+   is ATHLETES.Household ID; these two columns on HOUSEHOLDS are a summary of
+   it. Keeping them in step matters because a coach reading HOUSEHOLDS would
+   otherwise see a family of two listed as a family of one. */
+function ciAttachAthleteToHousehold_(hhSheet, hIdx, householdId, athleteId) {
+  if (hIdx['Household ID'] == null) return;
+  var last = hhSheet.getLastRow();
+  if (last < 2) return;
+  var ids = hhSheet.getRange(2, hIdx['Household ID'] + 1, last - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    if (ciStr_(ids[i][0]) !== householdId) continue;
+    var row = i + 2;
+    if (hIdx['Linked Athlete IDs'] != null) {
+      var cell = hhSheet.getRange(row, hIdx['Linked Athlete IDs'] + 1);
+      var cur = ciStr_(cell.getValue());
+      var list = cur ? cur.split(/[,;|\s]+/).filter(String) : [];
+      if (list.indexOf(athleteId) === -1) list.push(athleteId);
+      cell.setValue(list.join(', '));
+      if (hIdx['Athlete Count'] != null) {
+        hhSheet.getRange(row, hIdx['Athlete Count'] + 1).setValue(list.length);
+      }
+    }
+    return;
+  }
+}
+
+/* Opens a household AND its first athlete together. Both are new records;
+   nothing existing is touched, so there is no merge to get wrong. */
+function ciCreateHouseholdAndAthlete_(hhSheet, hIdx, hRows, athSheet, aIdx, aRows,
+                                      master, email, phone, submissionId) {
+  var hid = ciNextId_(hRows, hIdx['Household ID'], 'JW-H-');
+  var hRow = [];
+  for (var i = 0; i < hhSheet.getLastColumn(); i++) hRow.push('');
+  hRow[hIdx['Household ID']] = hid;
+  if (hIdx['Primary Contact Name'] != null) hRow[hIdx['Primary Contact Name']] = ciStr_(master.parentName);
+  if (hIdx['Primary Email'] != null) hRow[hIdx['Primary Email']] = email;
+  if (hIdx['Primary Phone'] != null) hRow[hIdx['Primary Phone']] = phone;
+  if (hIdx['Athlete Count'] != null) hRow[hIdx['Athlete Count']] = 1;
+  if (hIdx['Anchor Submission ID'] != null) hRow[hIdx['Anchor Submission ID']] = submissionId;
+  if (hIdx['Source Submission IDs'] != null) hRow[hIdx['Source Submission IDs']] = submissionId;
+  if (hIdx['Data Quality Status'] != null) hRow[hIdx['Data Quality Status']] = 'NEW_FROM_INTAKE';
+  hhSheet.appendRow(hRow);
+  hRows.push(hRow);
+
+  var aid = ciNextId_(aRows, aIdx['Athlete ID'], 'JW-A-');
+  var aRow = [];
+  for (var j = 0; j < athSheet.getLastColumn(); j++) aRow.push('');
+  aRow[aIdx['Athlete ID']] = aid;
+  aRow[aIdx['First Name']] = ciStr_(master.first);
+  aRow[aIdx['Last Name']] = ciStr_(master.last);
+  aRow[aIdx['Household ID']] = hid;
+  aRow[aIdx['Anchor Submission ID']] = submissionId;
+  aRow[aIdx['Source Submission IDs']] = submissionId;
+  if (aIdx['Data Quality Status'] != null) aRow[aIdx['Data Quality Status']] = 'NEW_FROM_INTAKE';
+  athSheet.appendRow(aRow);
+  aRows.push(aRow);
+
+  if (hIdx['Linked Athlete IDs'] != null) {
+    hhSheet.getRange(hhSheet.getLastRow(), hIdx['Linked Athlete IDs'] + 1).setValue(aid);
+  }
+  return { householdId: hid, athleteId: aid };
+}
+
 /* Every MASTER row with no Athlete ID. Dry run by default. */
 function ciSyncPending(commit) {
   var mas = ciSheet_(CI_MASTER), mIdx = ciIndex_(mas), mRows = ciRows_(mas);
@@ -423,7 +520,7 @@ function ciSyncPending(commit) {
   var ath = ciSheet_(CI_ATHLETES), aIdx = ciIndex_(ath), aRows = ciRows_(ath);
   var hh = ciSheet_(CI_HOUSEHOLDS), hIdx = ciIndex_(hh), hRows = ciRows_(hh);
 
-  var linked = [], created = [], review = [], skipped = 0;
+  var linked = [], created = [], newHouseholds = [], review = [], skipped = 0;
 
   for (var i = 0; i < mRows.length; i++) {
     var r = mRows[i];
@@ -436,6 +533,7 @@ function ciSyncPending(commit) {
       submissionId: sid,
       first: r[mIdx['Player First Name']],
       last: r[mIdx['Player Last Name']],
+      parentName: mIdx['Parent / Guardian Name'] == null ? '' : r[mIdx['Parent / Guardian Name']],
       email: mIdx['Parent Email'] == null ? '' : r[mIdx['Parent Email']],
       phone: mIdx['Parent Phone'] == null ? '' : r[mIdx['Parent Phone']]
     };
@@ -443,6 +541,7 @@ function ciSyncPending(commit) {
     var d = ciResolveIdentity_(master, aRows, aIdx, hRows, hIdx);
     if (d.action === 'LINK') linked.push({ row: master.row, submissionId: sid, athleteId: d.athleteId });
     else if (d.action === 'CREATE') created.push({ row: master.row, submissionId: sid, householdId: d.householdId, master: master });
+    else if (d.action === 'CREATE_HOUSEHOLD') newHouseholds.push({ row: master.row, submissionId: sid, master: master, email: d.email, phone: d.phone });
     else review.push({ row: master.row, submissionId: sid, reason: d.reason });
   }
 
@@ -464,8 +563,17 @@ function ciSyncPending(commit) {
       if (aIdx['Data Quality Status'] != null) newRow[aIdx['Data Quality Status']] = 'NEW_FROM_INTAKE';
       ath.appendRow(newRow);
       aRows.push(newRow);          /* so the next mint does not reuse this id */
+      ciAttachAthleteToHousehold_(hh, hIdx, created[c].householdId, newId);
       mas.getRange(created[c].row, col).setValue(newId);
       created[c].athleteId = newId;
+    }
+    for (var n2 = 0; n2 < newHouseholds.length; n2++) {
+      var made = ciCreateHouseholdAndAthlete_(hh, hIdx, hRows, ath, aIdx, aRows,
+        newHouseholds[n2].master, newHouseholds[n2].email, newHouseholds[n2].phone,
+        newHouseholds[n2].submissionId);
+      mas.getRange(newHouseholds[n2].row, col).setValue(made.athleteId);
+      newHouseholds[n2].athleteId = made.athleteId;
+      newHouseholds[n2].householdId = made.householdId;
     }
     SpreadsheetApp.flush();
   }
@@ -473,6 +581,8 @@ function ciSyncPending(commit) {
   return {
     mode: commit ? 'COMMIT' : 'DRY RUN',
     alreadyLinked: skipped,
+    newHouseholds: newHouseholds.length,
+    newHouseholdDetail: newHouseholds.map(function (x) { return x.submissionId + (x.athleteId ? ' -> ' + x.athleteId + ' / ' + x.householdId : ''); }),
     linked: linked.length, linkedDetail: linked.map(function (x) { return x.submissionId; }),
     created: created.length, createdDetail: created.map(function (x) { return x.submissionId + (x.athleteId ? ' -> ' + x.athleteId : ''); }),
     review: review.length, reviewDetail: review
@@ -501,12 +611,14 @@ function ciSyncOne_(submissionId) {
     var hh = ciSheet_(CI_HOUSEHOLDS), hIdx = ciIndex_(hh), hRows = ciRows_(hh);
     var r = mRows[target];
 
-    var d = ciResolveIdentity_({
+    var master = {
       first: r[mIdx['Player First Name']],
       last: r[mIdx['Player Last Name']],
+      parentName: mIdx['Parent / Guardian Name'] == null ? '' : r[mIdx['Parent / Guardian Name']],
       email: mIdx['Parent Email'] == null ? '' : r[mIdx['Parent Email']],
       phone: mIdx['Parent Phone'] == null ? '' : r[mIdx['Parent Phone']]
-    }, aRows, aIdx, hRows, hIdx);
+    };
+    var d = ciResolveIdentity_(master, aRows, aIdx, hRows, hIdx);
 
     var col = mIdx['Athlete ID'] + 1, row = target + 2;
 
@@ -526,11 +638,172 @@ function ciSyncOne_(submissionId) {
       newRow[aIdx['Source Submission IDs']] = submissionId;
       if (aIdx['Data Quality Status'] != null) newRow[aIdx['Data Quality Status']] = 'NEW_FROM_INTAKE';
       ath.appendRow(newRow);
+      ciAttachAthleteToHousehold_(hh, hIdx, d.householdId, newId);
       mas.getRange(row, col).setValue(newId);
       return { ok: true, action: 'CREATE', athleteId: newId };
+    }
+    if (d.action === 'CREATE_HOUSEHOLD') {
+      var made = ciCreateHouseholdAndAthlete_(hh, hIdx, hRows, ath, aIdx, aRows,
+        master, d.email, d.phone, submissionId);
+      mas.getRange(row, col).setValue(made.athleteId);
+      return { ok: true, action: 'CREATE_HOUSEHOLD', athleteId: made.athleteId, householdId: made.householdId };
     }
     return { ok: true, action: 'REVIEW', reason: d.reason };
   } catch (err) {
     return { ok: false, reason: String(err).slice(0, 200) };
   }
+}
+
+/* ==========================================================================
+   PHASE 2C QA CLEANUP  (one-off, 2026-09-30)
+   --------------------------------------------------------------------------
+   Removes ONLY the synthetic records created while regression-testing Phase
+   2C. It never works from a row number: row numbers shift the moment
+   anything is deleted, and a stale number is how a real family's record gets
+   destroyed.
+
+   Each sheet has its own IDENTITY rule plus CORROBORATING signals. A row must
+   satisfy identity to be a candidate at all; a candidate failing any
+   corroborating signal is AMBIGUOUS, and one ambiguous candidate stops the
+   whole sheet. Nothing is deleted on a maybe.
+
+   Deletion runs bottom-up, and every row is re-read and re-verified by
+   content immediately before it is deleted, so a registration that lands
+   mid-run is skipped rather than destroyed.
+   ========================================================================== */
+var P2C_INBOXES = ['triumphhoopsacademy@gmail.com', 'msoriano33@gmail.com'];
+var P2C_MARK = /QA TEST - DO NOT COUNT/i;
+var P2C_PLAYER = /^Qatest /i;
+var P2C_HOUSEHOLD_NAME = /^Qa Tester$/i;
+
+function p2cIsTestInbox_(v) {
+  return P2C_INBOXES.indexOf(ciStr_(v).toLowerCase()) !== -1;
+}
+
+/* Returns null for "not a candidate", otherwise { ok, why }. */
+function p2cClassify_(sheetName, idx, r) {
+  function c(n) { return idx[n] == null ? '' : ciStr_(r[idx[n]]); }
+
+  if (sheetName === CI_MASTER) {
+    if (!P2C_PLAYER.test(c('Player Full Name'))) return null;
+    var why = [];
+    if (!p2cIsTestInbox_(c('Parent Email'))) why.push('parent email is not an approved test inbox');
+    if (!P2C_MARK.test(c('Additional Notes'))) why.push('no QA marker in Additional Notes');
+    if (!c('Submission ID')) why.push('no Submission ID');
+    return { ok: !why.length, why: why.join(' + ') };
+  }
+
+  if (sheetName === CI_RSVP) {
+    if (!P2C_PLAYER.test(c('Player Full Name'))) return null;
+    var why2 = [];
+    /* The matched path copies the parent address out of MASTER and writes no
+       notes, so the address is the signal that has to carry here. */
+    if (!p2cIsTestInbox_(c('Parent Email'))) why2.push('parent email is not an approved test inbox');
+    if (!c('RSVP ID')) why2.push('no RSVP ID');
+    return { ok: !why2.length, why: why2.join(' + ') };
+  }
+
+  if (sheetName === CI_ATHLETES) {
+    if (!/^Qatest$/i.test(c('First Name'))) return null;
+    var why3 = [];
+    if (ciStr_(c('Data Quality Status')) !== 'NEW_FROM_INTAKE') {
+      why3.push('not marked NEW_FROM_INTAKE, so it predates this test run');
+    }
+    if (!c('Athlete ID')) why3.push('no Athlete ID');
+    return { ok: !why3.length, why: why3.join(' + ') };
+  }
+
+  if (sheetName === CL_SHEET) {
+    /* A confirmation log row is evidence, so the bar here is higher than
+       anywhere else: deleting a real family's record would destroy the only
+       answer to "did they get their confirmation?".
+
+       Identity is the recipient being an approved test inbox. Corroboration
+       is that the record it points at NO LONGER EXISTS - every QA row this
+       run created points at a MASTER or CLINIC RSVP row that has just been
+       deleted, while a real family's row always points at one that is still
+       there. Both must hold. */
+    if (!p2cIsTestInbox_(c('Recipient'))) return null;
+    var why5 = [];
+    if (p2cRecordStillExists_(c('Record ID'))) {
+      why5.push('the record it refers to still exists, so this may be a real confirmation');
+    }
+    if (!c('Log ID')) why5.push('no Log ID');
+    return { ok: !why5.length, why: why5.join(' + ') };
+  }
+
+  if (sheetName === CI_HOUSEHOLDS) {
+    if (!P2C_HOUSEHOLD_NAME.test(c('Primary Contact Name'))) return null;
+    var why4 = [];
+    if (!p2cIsTestInbox_(c('Primary Email'))) why4.push('primary email is not an approved test inbox');
+    if (ciStr_(c('Data Quality Status')) !== 'NEW_FROM_INTAKE') {
+      why4.push('not marked NEW_FROM_INTAKE, so it predates this test run');
+    }
+    return { ok: !why4.length, why: why4.join(' + ') };
+  }
+  return null;
+}
+
+/* Does any live MASTER or CLINIC RSVP row still carry this id? */
+function p2cRecordStillExists_(recordId) {
+  var id = ciStr_(recordId);
+  if (!id) return false;
+  var pairs = [[CI_MASTER, 'Submission ID'], [CI_RSVP, 'RSVP ID']];
+  for (var p = 0; p < pairs.length; p++) {
+    var sh, idx;
+    try { sh = ciSheet_(pairs[p][0]); idx = ciIndex_(sh); } catch (e) { continue; }
+    if (idx[pairs[p][1]] == null) continue;
+    var last = sh.getLastRow();
+    if (last < 2) continue;
+    var col = sh.getRange(2, idx[pairs[p][1]] + 1, last - 1, 1).getValues();
+    for (var i = 0; i < col.length; i++) if (ciStr_(col[i][0]) === id) return true;
+  }
+  return false;
+}
+
+function p2cScan_(sheetName) {
+  var sh = ciSheet_(sheetName), idx = ciIndex_(sh), rows = ciRows_(sh);
+  var confirmed = [], ambiguous = [];
+  for (var i = 0; i < rows.length; i++) {
+    var verdict = p2cClassify_(sheetName, idx, rows[i]);
+    if (!verdict) continue;
+    var rec = { row: i + 2 };
+    if (verdict.ok) confirmed.push(rec);
+    else { rec.why = verdict.why; ambiguous.push(rec); }
+  }
+  return { sheet: sheetName, dataRows: rows.length, confirmed: confirmed, ambiguous: ambiguous };
+}
+
+function p2cCleanup(commit) {
+  /* CONFIRMATION LOG runs LAST: its rule asks whether the record a row
+     points at still exists, which is only meaningful once the QA rows in the
+     other sheets have already gone. */
+  var sheets = [CI_MASTER, CI_RSVP, CI_ATHLETES, CI_HOUSEHOLDS, CL_SHEET];
+  var out = [];
+  for (var s = 0; s < sheets.length; s++) {
+    var name = sheets[s], scan = p2cScan_(name);
+    var entry = { sheet: name, dataRows: scan.dataRows,
+                  candidates: scan.confirmed.length, ambiguous: scan.ambiguous.length,
+                  ambiguousDetail: scan.ambiguous, deleted: 0, skippedOnRecheck: [] };
+
+    if (!commit || scan.ambiguous.length || !scan.confirmed.length) {
+      if (commit && scan.ambiguous.length) entry.refused = 'ambiguous candidate(s) - nothing deleted in this sheet';
+      out.push(entry);
+      continue;
+    }
+    var sh = ciSheet_(name), idx = ciIndex_(sh);
+    var desc = scan.confirmed.map(function (x) { return x.row; }).sort(function (a, b) { return b - a; });
+    for (var d = 0; d < desc.length; d++) {
+      var row = sh.getRange(desc[d], 1, 1, sh.getLastColumn()).getValues()[0];
+      var again = p2cClassify_(name, idx, row);
+      if (!again || !again.ok) { entry.skippedOnRecheck.push(desc[d]); continue; }
+      sh.deleteRow(desc[d]);
+      entry.deleted++;
+    }
+    SpreadsheetApp.flush();
+    entry.dataRowsAfter = sh.getLastRow() - 1;
+    entry.remaining = p2cScan_(name).confirmed.length;
+    out.push(entry);
+  }
+  return { mode: commit ? 'COMMIT' : 'DRY RUN', sheets: out };
 }
