@@ -324,11 +324,31 @@ module.exports = async function handler(req, res) {
      otherwise a duplicate is only someone else's earlier row. */
   const alreadyListed = !!result.alreadyRsvpd || (!!result.duplicate && result.rsvpId !== rsvpId);
 
-  /* Exactly one confirmation per new row. `result.duplicate` is true on every
-     confirm re-ask of our own pending write, so a slow sheet cannot produce a
-     second email. */
+  /* WHICH KIND OF "DUPLICATE" IS THIS?
+     The writer reports duplicate:true in two very different situations, and
+     conflating them is what silently cost families their confirmation:
+
+       A. our own slow write. The first request timed out, we answered 202,
+          the page re-asked with the SAME rsvpId, and the row it finds is the
+          one this submission created. result.rsvpId === rsvpId.
+          -> this IS a new RSVP and it HAS NOT been confirmed. Send.
+
+       B. a genuinely earlier RSVP for this athlete, under a different id,
+          or a matched-path athlete the script reports as alreadyRsvpd.
+          -> already on the list. Do not send.
+
+     `alreadyListed` already draws exactly that line - it was computed for the
+     response and simply was not used here. Gating on result.duplicate treated
+     case A as case B, so every family whose first write ran slow got nothing.
+     Found 2026-09-30 by reproducing it: a 19.5s write, a 202, a same-id retry,
+     and confirmation "skipped" on a row that existed.
+
+     Sending in case A cannot double-send: the confirmation carries the
+     deterministic Idempotency-Key jw-rsvp-confirm-<rsvpId>, so a retry after a
+     confirmation was already accepted collapses at the provider into the same
+     message. The log records both attempts, which is the truth. */
   let confirmation = "skipped";
-  if (!result.duplicate && !result.alreadyRsvpd) {
+  if (!alreadyListed) {
     /* Full form: the family typed the address. Matched path: the script read
        it out of MASTER REGISTRATIONS and handed it back to us directly. */
     const to = f.parent_email || String(result.parentEmail || "").trim().toLowerCase();
@@ -353,13 +373,14 @@ module.exports = async function handler(req, res) {
       }, "SKIPPED_NO_ADDRESS", "no-address-in-request");
     }
   } else {
-    /* A duplicate or an already-listed athlete deliberately sends nothing.
-       Record WHY, so the gap report can tell "suppressed on purpose" apart
-       from "silently missed". */
+    /* Case B only, now. Deliberately sends nothing - recorded as deliberately
+       as a send, so the gap report can tell "suppressed on purpose" from
+       "silently missed". */
     await CLOG.recordSkip({
       recordType: "clinic_rsvp", recordId: result.rsvpId || rsvpId,
       recipient: f.parent_email || "", confirmationType: "rsvp_confirmation"
-    }, "SKIPPED_DUPLICATE", result.alreadyRsvpd ? "already-rsvpd" : "duplicate-write");
+    }, "SKIPPED_DUPLICATE",
+       result.alreadyRsvpd ? "already-rsvpd" : "earlier-rsvp-different-id");
   }
   console.log("[clinic-rsvp] confirmation", rsvpId, confirmation);
 
