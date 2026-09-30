@@ -29,10 +29,17 @@ const C = require("../assets/js/canonical.js");
 const PAGES = ["index.html", "junior-wolves.html", "teams.html", "training.html", "clinic-rsvp.html"];
 const MARKER = /<!--CANON:([a-z]+)(?::([a-z_]+))?-->[\s\S]*?<!--\/CANON-->/g;
 
-function render(kind, program) {
-  if (kind === "grade") return C.gradeOptionsHtml(program);
-  if (kind === "age") return C.ageOptionsHtml(program);
+function render(kind, scope) {
+  if (kind === "grade") return C.gradeOptionsHtml(scope);
+  if (kind === "age") return C.ageOptionsHtml(scope);
   if (kind === "school") return C.schoolOptionsHtml();
+  /* For these two the scope is the FORM SOURCE, not the program: two Triumph
+     pages share a program and deliberately offer different interest lists. */
+  if (kind === "experience" || kind === "interest") {
+    const opts = C.choicesForSource(kind, scope);
+    if (!opts.length) throw new Error("no " + kind + " options declared for source: " + scope);
+    return C.optionsHtml(opts);
+  }
   throw new Error("unknown canonical option kind: " + kind);
 }
 
